@@ -1124,12 +1124,10 @@ function wgTextLabel(wg, x, y, anchor){
   let lines = [];
   line1Wrapped.forEach(l=>lines.push({text:l, cls:'lead'}));
   line2Wrapped.forEach(l=>lines.push({text:l, cls:'note'}));
-  if(wg.teamInDevelopment) lines.push({text:t('diagram_team_in_dev'), cls:'dev'});
   return lines.map((l,i)=>{
-    const size = l.cls==='lead' ? 13 : (l.cls==='dev' ? 10 : 12);
+    const size = l.cls==='lead' ? 13 : 12;
     const weight = l.cls==='lead' ? 700 : 500;
-    const color = l.cls==='dev' ? DIAG.blue : DIAG.red;
-    return `<text x="${x}" y="${y + i*16}" text-anchor="${anchor}" style="font-size:${size}px; font-weight:${weight}; fill:${color};">${escapeHtml(l.text)}</text>`;
+    return `<text x="${x}" y="${y + i*16}" text-anchor="${anchor}" style="font-size:${size}px; font-weight:${weight}; fill:${DIAG.red};">${escapeHtml(l.text)}</text>`;
   }).join('');
 }
 
@@ -1254,13 +1252,13 @@ function diagramSVG(){
 function renderOverview(){
   const authorCount = STATE.authors.length;
   const wgListHtml = STATE.wgs.map(wg=>{
-    const leads = authorsForWg(wg.id).filter(a=>a.role==='WG Lead');
+    const leads = authorsForWg(wg.id).filter(a=>a.role==='WG Lead').map(a=>a.name);
+    const leadText = leads.length ? leads.join(', ') : (wg.defaultLead || t('ov_no_lead'));
     return `
       <div class="wg-list-item" data-wg="${wg.id}">
         <span class="wg-dot" style="background:${wg.color}"></span>
         <div>
-          <div class="name">${wg.code} · ${L(wg,'name')}</div>
-          <div class="lead">${leads.map(l=>l.name).join(', ') || t('ov_no_lead')}</div>
+          <div class="name">${wg.code}: ${escapeHtml(leadText)} — ${escapeHtml(L(wg,'diagramNote'))}</div>
         </div>
         <span class="arrow">→</span>
       </div>`;
