@@ -566,7 +566,7 @@ const DEFAULT_WGS = [
     focusConceptsJa:['土地の変化（非線形・不確実）','非人間の政治的代表'],
     queryTerms:'IPBES pluriversal multispecies governance nonhuman political representation land use uncertainty',
     queryTermsJa:'IPBES プルリバース 多種ガバナンス 非人間 政治的代表 土地利用 不確実性',
-    bubbleLabel:'IPBES', bubbleLabelJa:'IPBES', diagramNote:'Intl Case Database', diagramNoteJa:'国際事例データベース', teamInDevelopment:false, },
+    defaultLead:'RUPPRECHT, Christoph',bubbleLabel:'IPBES', bubbleLabelJa:'IPBES', diagramNote:'Intl Case Database', diagramNoteJa:'国際事例データベース', teamInDevelopment:false, },
   { id:'wg6', code:'WG6', name:'Narratives and Values', nameJa:'ナラティブと価値観', angle:-30, color:COLORS.plum,
     subtitle:'Worldviews of "agroecology"', subtitleJa:'「アグロエコロジー」の世界観',
     description:'Examines competing worldviews and narratives — including relational values — behind agroecological and land-use discourse.',
@@ -575,7 +575,7 @@ const DEFAULT_WGS = [
     focusConceptsJa:['土地のエージェンシー','関係価値','世界観'],
     queryTerms:'agroecology pluriversal worldviews relational values multispecies more-than-human ontology',
     queryTermsJa:'アグロエコロジー プルリバース 世界観 関係価値 多種 存在論',
-    bubbleLabel:'Worldviews', bubbleLabelJa:'世界観', diagramNote:'Worldviews of "agroecology"', diagramNoteJa:'「アグロエコロジー」の世界観', teamInDevelopment:false, },
+    defaultLead:'NISHIKAWA Yoshiaki',bubbleLabel:'Worldviews', bubbleLabelJa:'世界観', diagramNote:'Worldviews of "agroecology"', diagramNoteJa:'「アグロエコロジー」の世界観', teamInDevelopment:false, },
   { id:'wg4', code:'WG4', name:'Diverse Local Practices', nameJa:'多様な地域の実践', angle:30, color:COLORS.sage,
     subtitle:'New Forest Use and Values · Pattern Languages', subtitleJa:'新しい森林利用と価値観・パターンランゲージ',
     description:'Documents diverse, place-based forest and agricultural practices, working toward a shared "pattern language" of local land use.',
@@ -584,7 +584,7 @@ const DEFAULT_WGS = [
     focusConceptsJa:['知る方法（身体化された知）','ランドスケープの共生','パターンランゲージ'],
     queryTerms:'forest use local practices pluriversal multispecies cohabitation embodied knowledge pattern language',
     queryTermsJa:'森林利用 地域実践 プルリバース 多種共生 身体化された知 パターンランゲージ',
-    bubbleLabel:'Pattern Languages', bubbleLabelJa:'パターンランゲージ', diagramNote:'New Forest Use and Values', diagramNoteJa:'新しい森林利用と価値観', teamInDevelopment:true, },
+    defaultLead:'MIKI Atsuro',bubbleLabel:'Pattern Languages', bubbleLabelJa:'パターンランゲージ', diagramNote:'New Forest Use and Values', diagramNoteJa:'新しい森林利用と価値観', teamInDevelopment:true, },
   { id:'wg3', code:'WG3', name:'Institutional Workaround', nameJa:'制度的ワークアラウンド', angle:90, color:COLORS.moss,
     subtitle:'Participatory landscape management', subtitleJa:'参加型ランドスケープ管理',
     description:'Studies how communities work around gaps in formal institutions through participatory landscape management.',
@@ -593,7 +593,7 @@ const DEFAULT_WGS = [
     focusConceptsJa:['ランドスケープデザイン（多種共同デザイン）','コモニングの実践'],
     queryTerms:'participatory landscape management pluriversal multispecies commoning co-design institutional workaround',
     queryTermsJa:'参加型ランドスケープ管理 プルリバース 多種コモニング 共同デザイン 制度',
-    bubbleLabel:'Institutional Workaround', bubbleLabelJa:'制度的ワークアラウンド', diagramNote:'Participatory landscape management', diagramNoteJa:'参加型ランドスケープ管理', teamInDevelopment:false, },
+    defaultLead:'KAMADA Mahito',bubbleLabel:'Institutional Workaround', bubbleLabelJa:'制度的ワークアラウンド', diagramNote:'Participatory landscape management', diagramNoteJa:'参加型ランドスケープ管理', teamInDevelopment:false, },
   { id:'wg1', code:'WG1', name:'Gaps in Existing Institutions', nameJa:'既存制度の間隙', angle:150, color:COLORS.clay,
     subtitle:'Proposal of new institution — "Amplification?"', subtitleJa:'新制度の提案 ―「増幅？」',
     description:'Identifies structural gaps in existing land-use institutions and explores proposals for new institutional forms.',
@@ -602,7 +602,7 @@ const DEFAULT_WGS = [
     focusConceptsJa:['土地の所有（多種コモンズ）','所有制度の実践'],
     queryTerms:'land use institutions gaps pluriversal multispecies commons more-than-human property new institutional design',
     queryTermsJa:'土地利用制度 間隙 プルリバース 多種コモンズ 人間以外の存在の財産権 新制度',
-    bubbleLabel:'Proposal of new institution', bubbleLabelJa:'新制度の提案', diagramNote:'Amplification?', diagramNoteJa:'増幅？', teamInDevelopment:true, },
+    defaultLead:'MALLEE Hein',bubbleLabel:'Proposal of new institution', bubbleLabelJa:'新制度の提案', diagramNote:'Amplification', diagramNoteJa:'増幅', teamInDevelopment:true, },
   { id:'wg2', code:'WG2', name:'Local Certification', nameJa:'地域認証', angle:210, color:COLORS.ochre,
     subtitle:'Certification schemes', subtitleJa:'認証制度',
     description:'Investigates local and community-driven certification schemes as an institutional response to land-use change.',
@@ -611,7 +611,7 @@ const DEFAULT_WGS = [
     focusConceptsJa:['土地とウェルビーイング（多種の繁栄）','制度的対応としての認証'],
     queryTerms:'local certification schemes pluriversal multispecies wellbeing reciprocal flourishing agriculture forestry',
     queryTermsJa:'地域認証制度 プルリバース 多種ウェルビーイング 互恵 農業 林業',
-    bubbleLabel:'certification', bubbleLabelJa:'認証', diagramNote:'Local Certification', diagramNoteJa:'地域認証', teamInDevelopment:true, },
+    defaultLead:'OMOTO Reiko',bubbleLabel:'certification', bubbleLabelJa:'認証', diagramNote:'Local Certification', diagramNoteJa:'地域認証', teamInDevelopment:true, },
 ];
 
 const DEFAULT_THEMES = [
@@ -679,10 +679,27 @@ let STATE = {
   showThemeForm:false, editingThemeId:null,
 };
 
+// Backfills any fields present in the current code's defaults but missing from a
+// previously-saved record (e.g. new WG fields added after a team started using the
+// site). Anything the team has actually edited/saved is left untouched; only truly
+// absent keys get filled in from the current default.
+function mergeWithDefaults(stored, defaults){
+  const defaultsById = {};
+  defaults.forEach(d=>{ defaultsById[d.id] = d; });
+  const merged = (stored||[]).map(item=>{
+    const def = defaultsById[item.id];
+    return def ? Object.assign({}, def, item) : item;
+  });
+  const seenIds = new Set((stored||[]).map(s=>s.id));
+  defaults.forEach(d=>{ if(!seenIds.has(d.id)) merged.push(d); });
+  return merged;
+}
+
 async function loadAll(){
   STATE.lang = await storeGet('pluriverse:lang', 'en', false); // personal preference, not shared
   STATE.meta = await storeGet('pluriverse:meta', DEFAULT_META);
-  STATE.wgs = await storeGet('pluriverse:wgs', DEFAULT_WGS);
+  const storedWgs = await storeGet('pluriverse:wgs', DEFAULT_WGS);
+  STATE.wgs = mergeWithDefaults(storedWgs, DEFAULT_WGS);
   STATE.themes = await storeGet('pluriverse:themes', DEFAULT_THEMES);
   STATE.authors = await storeGet('pluriverse:authors', DEFAULT_AUTHORS);
   STATE.manualPubs = await storeGet('pluriverse:manualPubs', []);
@@ -1100,7 +1117,8 @@ function ellipseEdgePoint(cx,cy,rx,ry,towardX,towardY){
 
 function wgTextLabel(wg, x, y, anchor){
   const leads = authorsForWg(wg.id).filter(a=>a.role==='WG Lead').map(a=>a.name);
-  const line1 = leads.length ? `${wg.code}  [${leads.join(', ')}]` : wg.code;
+  const leadText = leads.length ? leads.join(', ') : (wg.defaultLead || '');
+  const line1 = leadText ? `${wg.code}  [${leadText}]` : wg.code;
   const line1Wrapped = wrapText(line1, STATE.lang==='ja' ? 12 : 24);
   const line2Wrapped = wrapText(L(wg,'diagramNote'), STATE.lang==='ja' ? 12 : 26);
   let lines = [];
