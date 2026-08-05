@@ -1051,112 +1051,147 @@ const HUB_LAYOUT = [
   { wgId:'wg4', angle:90  }, // Diverse Local Practices - bottom
   { wgId:'wg1', angle:180 }, // Gaps in Existing Institutions - left
 ];
-// Collaborator call-outs shown inside two of the hubs in the source diagram
-const HUB_COLLABORATOR_THEME = { wg1:'t-commoning', wg6:'t-relational' };
 
-// Each of the 6 WGs gets a text label ("WG# [Lead]" + topic) and a small speech-bubble
-// tag, both positioned near the hub they relate to — proximity, not connecting lines,
-// is what shows the relationship, matching the source Theory of Change diagram.
-// Offsets are relative to the diagram center (cx,cy).
-const WG_BUBBLE_LAYOUT = {
-  wg5: { labelDx: 345, labelDy:-255, labelAnchor:'start',  bubbleDx: 300, bubbleDy:-330, bubbleRx:78, bubbleRy:34 },
-  wg2: { labelDx:-345, labelDy:-255, labelAnchor:'end',    bubbleDx:-395, bubbleDy:-170, bubbleRx:78, bubbleRy:32 },
-  wg6: { labelDx: 380, labelDy: 115, labelAnchor:'start',  bubbleDx: 440, bubbleDy:  25, bubbleRx:80, bubbleRy:40 },
-  wg4: { labelDx: 130, labelDy: 335, labelAnchor:'start',  bubbleDx: 300, bubbleDy: 370, bubbleRx:92, bubbleRy:32 },
-  wg3: { labelDx:-300, labelDy: 365, labelAnchor:'end',    bubbleDx:-235, bubbleDy: 295, bubbleRx:100,bubbleRy:34 },
-  wg1: { labelDx:-390, labelDy: 115, labelAnchor:'end',    bubbleDx:-450, bubbleDy: 225, bubbleRx:92, bubbleRy:38 },
+// Diagram-specific palette (kept local to the SVG rather than the app's CSS vars,
+// to match the reference diagram's own color language).
+const DIAG = {
+  red:'#9C2B2B', gray:'#B7B7B7', blue:'#3E5C86', lavender:'#8F7FC7',
+  tanFill:'#E9D6AC', tanBorder:'#B08D52',
+  greenFill:'#B9E8C9', greenBorder:'#5B9B6F', greenText:'#2E5E3E',
+  lavFill:'#D9D3F0', lavBorder:'#8F7FC7', lavText:'#4B3F7A',
 };
+
+// Each WG's tag box + which hub it connects to + where its text label sits.
+const WG_BOX_LAYOUT = {
+  wg5: { boxCx:1172, boxCy:205,  hub:'wg5', labelX:1172, labelY:130,  labelAnchor:'middle' },
+  wg2: { boxCx:207,  boxCy:295,  hub:'wg1', labelX:207,  labelY:185,  labelAnchor:'middle' },
+  wg6: { boxCx:1472, boxCy:595,  hub:'wg6', labelX:1560, labelY:555,  labelAnchor:'start'  },
+  wg4: { boxCx:1291, boxCy:1128, hub:'wg4', labelX:1380, labelY:1055, labelAnchor:'start'  },
+  wg3: { boxCx:507,  boxCy:1212, hub:'wg4', labelX:395,  labelY:1300, labelAnchor:'start'  },
+  wg1: { boxCx:186,  boxCy:823,  hub:'wg1', labelX:140,  labelY:750,  labelAnchor:'start'  },
+};
+
+// The two collaborator call-outs, each drawn as its own ellipse with connector
+// line(s) to the hub(s) it relates to.
+const COLLABORATOR_ELLIPSES = [
+  { themeId:'t-commoning',   hubIds:['wg1','wg4'], cx:321,  cy:1000, rx:105, ry:78, fill:DIAG.greenFill, border:DIAG.greenBorder, text:DIAG.greenText },
+  { themeId:'t-relational',  hubIds:['wg6'],        cx:1447, cy:352,  rx:105, ry:82, fill:DIAG.lavFill,   border:DIAG.lavBorder,   text:DIAG.lavText },
+];
 
 function surname(fullName){
   const first = (fullName||'').split(' ')[0] || '';
   return first.charAt(0) + first.slice(1).toLowerCase();
 }
 
-function hubCollaboratorNote(wg){
-  const themeId = HUB_COLLABORATOR_THEME[wg.id];
-  if(!themeId) return null;
-  const names = STATE.authors
-    .filter(a=>a.role==='Collaborator' && a.themeIds && a.themeIds.includes(themeId))
-    .map(a=>surname(a.name));
-  if(!names.length) return null;
-  const theme = byId(STATE.themes, themeId);
-  return (theme ? L(theme,'name') + ': ' : '') + names.join(', ');
+function quadCurve(x1,y1,x2,y2,bow,color,width,markerId,dashed){
+  const mx=(x1+x2)/2, my=(y1+y2)/2;
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1;
+  const nx=-dy/len, ny=dx/len;
+  const ctrlX=mx+nx*bow, ctrlY=my+ny*bow;
+  const marker = markerId ? `marker-end="url(#${markerId})"` : '';
+  const dash = dashed ? 'stroke-dasharray="5 5"' : '';
+  return `<path d="M${x1},${y1} Q${ctrlX},${ctrlY} ${x2},${y2}" fill="none" stroke="${color}" stroke-width="${width}" opacity="0.85" ${dash} ${marker} />`;
 }
 
-function arrowLine(x1,y1,x2,y2,color,width,double){
-  const markers = double
-    ? 'marker-start="url(#tocArrow)" marker-end="url(#tocArrow)"'
-    : 'marker-end="url(#tocArrow)"';
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" ${markers} />`;
-}
-
-// A thought-bubble ellipse with a small tail pointing back toward the diagram center,
-// matching the speech-bubble annotations in the source diagram.
-function speechBubble(cx,cy,rx,ry,tailTowardX,tailTowardY,label){
-  const angle = Math.atan2(tailTowardY-cy, tailTowardX-cx);
-  const spread = 0.3;
-  const bx1 = cx+rx*Math.cos(angle-spread), by1 = cy+ry*Math.sin(angle-spread);
-  const bx2 = cx+rx*Math.cos(angle+spread), by2 = cy+ry*Math.sin(angle+spread);
-  const tipX = cx+rx*1.35*Math.cos(angle), tipY = cy+ry*1.55*Math.sin(angle);
-  const lines = wrapText(label, STATE.lang==='ja' ? 7 : 13);
-  return `
-    <path d="M${bx1},${by1} L${tipX},${tipY} L${bx2},${by2} Z" fill="var(--card)" stroke="var(--clay)" stroke-width="1.5" />
-    <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="var(--card)" stroke="var(--clay)" stroke-width="1.5" />
-    ${lines.map((line,i)=>`<text x="${cx}" y="${cy + (i-(lines.length-1)/2)*13 + 4}" text-anchor="middle" style="font-size:11.5px; font-weight:600; fill:var(--ink);">${line}</text>`).join('')}
-  `;
+function ellipseEdgePoint(cx,cy,rx,ry,towardX,towardY){
+  const angle = Math.atan2(towardY-cy, towardX-cx);
+  return { x: cx+rx*Math.cos(angle), y: cy+ry*Math.sin(angle) };
 }
 
 function wgTextLabel(wg, x, y, anchor){
   const leads = authorsForWg(wg.id).filter(a=>a.role==='WG Lead').map(a=>a.name);
   const line1 = leads.length ? `${wg.code}  [${leads.join(', ')}]` : wg.code;
-  const line1Wrapped = wrapText(line1, STATE.lang==='ja' ? 11 : 22);
-  const line2Wrapped = wrapText(L(wg,'diagramNote'), STATE.lang==='ja' ? 11 : 24);
+  const line1Wrapped = wrapText(line1, STATE.lang==='ja' ? 12 : 24);
+  const line2Wrapped = wrapText(L(wg,'diagramNote'), STATE.lang==='ja' ? 12 : 26);
   let lines = [];
-  line1Wrapped.forEach(l=>lines.push({text:l, cls:'wg-label-lead'}));
-  line2Wrapped.forEach(l=>lines.push({text:l, cls:'wg-label-note'}));
-  if(wg.teamInDevelopment) lines.push({text:t('diagram_team_in_dev'), cls:'wg-label-dev'});
+  line1Wrapped.forEach(l=>lines.push({text:l, cls:'lead'}));
+  line2Wrapped.forEach(l=>lines.push({text:l, cls:'note'}));
+  if(wg.teamInDevelopment) lines.push({text:t('diagram_team_in_dev'), cls:'dev'});
   return lines.map((l,i)=>{
-    const size = l.cls==='wg-label-lead' ? 13 : (l.cls==='wg-label-dev' ? 10 : 12);
-    const weight = l.cls==='wg-label-lead' ? 700 : 500;
-    const color = l.cls==='wg-label-dev' ? 'var(--indigo)' : 'var(--clay)';
+    const size = l.cls==='lead' ? 13 : (l.cls==='dev' ? 10 : 12);
+    const weight = l.cls==='lead' ? 700 : 500;
+    const color = l.cls==='dev' ? DIAG.blue : DIAG.red;
     return `<text x="${x}" y="${y + i*16}" text-anchor="${anchor}" style="font-size:${size}px; font-weight:${weight}; fill:${color};">${escapeHtml(l.text)}</text>`;
   }).join('');
 }
 
 function diagramSVG(){
-  const cx=590, cy=460, coreR=95;
-  const hubR=230, hubNodeR=85;
+  const cx=841, cy=678, coreRx=115, coreRy=130;
+  const hubR=348, hubRx=95, hubRy=110;
   const wrapLimit = STATE.lang==='ja' ? 8 : 12;
 
-  const hubPos = {};
-  HUB_LAYOUT.forEach(h=>{
-    const wg = byId(STATE.wgs, h.wgId);
-    if(!wg) return;
-    const rad = h.angle * Math.PI/180;
-    hubPos[h.wgId] = { wg, x: cx+hubR*Math.cos(rad), y: cy+hubR*Math.sin(rad), angle:h.angle };
-  });
+  const hubPos = {
+    wg5: { wg: byId(STATE.wgs,'wg5'), x:841, y:330 },
+    wg6: { wg: byId(STATE.wgs,'wg6'), x:1108, y:678 },
+    wg4: { wg: byId(STATE.wgs,'wg4'), x:841, y:1025 },
+    wg1: { wg: byId(STATE.wgs,'wg1'), x:561, y:678 },
+  };
 
-  let arrows = '';
+  let meshSvg = '', arrowSvg = '', connectorSvg = '', collabSvg = '';
 
-  // hub -> center (single-headed)
-  HUB_LAYOUT.forEach(h=>{
-    const rad = h.angle*Math.PI/180;
-    const sx = cx+(coreR+6)*Math.cos(rad), sy = cy+(coreR+6)*Math.sin(rad);
-    const ex = cx+(hubR-hubNodeR-8)*Math.cos(rad), ey = cy+(hubR-hubNodeR-8)*Math.sin(rad);
-    arrows += arrowLine(sx,sy,ex,ey,'var(--ink-faint)',1.6,false);
-  });
-
-  // hub <-> hub cyclic (double-headed), following HUB_LAYOUT order around the ring
-  for(let i=0;i<HUB_LAYOUT.length;i++){
-    const a = hubPos[HUB_LAYOUT[i].wgId];
-    const b = hubPos[HUB_LAYOUT[(i+1)%HUB_LAYOUT.length].wgId];
-    if(!a || !b) continue;
-    const dx=b.x-a.x, dy=b.y-a.y, dist=Math.hypot(dx,dy) || 1;
-    const ux=dx/dist, uy=dy/dist;
-    const sx=a.x+ux*(hubNodeR+8), sy=a.y+uy*(hubNodeR+8);
-    const ex=b.x-ux*(hubNodeR+8), ey=b.y-uy*(hubNodeR+8);
-    arrows += arrowLine(sx,sy,ex,ey,'var(--ink-faint)',1.3,true);
+  // thin gray mesh between every pair of hubs (all 6 combinations)
+  const hubIds = HUB_LAYOUT.map(h=>h.wgId);
+  for(let i=0;i<hubIds.length;i++){
+    for(let j=i+1;j<hubIds.length;j++){
+      const a = hubPos[hubIds[i]], b = hubPos[hubIds[j]];
+      if(!a||!b) continue;
+      const eA = ellipseEdgePoint(a.x,a.y,hubRx,hubRy,cx,cy);
+      const eB = ellipseEdgePoint(b.x,b.y,hubRx,hubRy,cx,cy);
+      meshSvg += quadCurve(eA.x,eA.y,eB.x,eB.y, 30, DIAG.gray, 1.3, null, false);
+    }
   }
+
+  // thick red arrows, each hub straight into the center
+  HUB_LAYOUT.forEach(h=>{
+    const p = hubPos[h.wgId]; if(!p) return;
+    const s = ellipseEdgePoint(p.x,p.y,hubRx,hubRy,cx,cy);
+    const e = ellipseEdgePoint(cx,cy,coreRx,coreRy,p.x,p.y);
+    arrowSvg += `<line x1="${s.x}" y1="${s.y}" x2="${e.x}" y2="${e.y}" stroke="${DIAG.red}" stroke-width="9" marker-end="url(#arrowRed)" />`;
+  });
+
+  // blue curved connectors: each WG box -> its hub
+  let boxesSvg = '';
+  Object.keys(WG_BOX_LAYOUT).forEach(wgId=>{
+    const wg = byId(STATE.wgs, wgId); if(!wg) return;
+    const cfg = WG_BOX_LAYOUT[wgId];
+    const hub = hubPos[cfg.hub]; if(!hub) return;
+    const boxW=160, boxH=80;
+    const boxEdge = ellipseEdgePoint(cfg.boxCx, cfg.boxCy, boxW/2, boxH/2, hub.x, hub.y);
+    const hubEdge = ellipseEdgePoint(hub.x, hub.y, hubRx, hubRy, cfg.boxCx, cfg.boxCy);
+    connectorSvg += quadCurve(boxEdge.x, boxEdge.y, hubEdge.x, hubEdge.y, 40, DIAG.blue, 2.2, 'arrowBlue', false);
+
+    const bubbleLines = wrapText(L(wg,'bubbleLabel'), STATE.lang==='ja' ? 7 : 13);
+    boxesSvg += `
+      <g class="petal" data-wg="${wg.id}">
+        <rect x="${cfg.boxCx-boxW/2}" y="${cfg.boxCy-boxH/2}" width="${boxW}" height="${boxH}" rx="6"
+              fill="${DIAG.tanFill}" stroke="${DIAG.tanBorder}" stroke-width="1.5" />
+        ${bubbleLines.map((line,i)=>`<text x="${cfg.boxCx}" y="${cfg.boxCy + (i-(bubbleLines.length-1)/2)*14 + 4}" text-anchor="middle" style="font-size:12px; font-weight:600; fill:var(--ink);">${escapeHtml(line)}</text>`).join('')}
+        ${wgTextLabel(wg, cfg.labelX, cfg.labelY, cfg.labelAnchor)}
+      </g>`;
+  });
+
+  // lavender collaborator ellipses + their connector lines to hub(s)
+  COLLABORATOR_ELLIPSES.forEach(cfg=>{
+    const names = STATE.authors
+      .filter(a=>a.role==='Collaborator' && a.themeIds && a.themeIds.includes(cfg.themeId))
+      .map(a=>surname(a.name));
+    const theme = byId(STATE.themes, cfg.themeId);
+    if(!names.length) return;
+    cfg.hubIds.forEach(hubId=>{
+      const hub = hubPos[hubId]; if(!hub) return;
+      const eA = ellipseEdgePoint(cfg.cx,cfg.cy,cfg.rx,cfg.ry,hub.x,hub.y);
+      const eB = ellipseEdgePoint(hub.x,hub.y,hubRx,hubRy,cfg.cx,cfg.cy);
+      collabSvg += quadCurve(eA.x,eA.y,eB.x,eB.y, 25, DIAG.lavender, 1.6, 'arrowLavender', false);
+    });
+    const titleLine = theme ? L(theme,'name')+':' : '';
+    const nameLines = wrapText(names.join(', '), STATE.lang==='ja' ? 9 : 16);
+    const allLines = [titleLine, ...nameLines];
+    collabSvg += `
+      <g class="petal" data-theme-tag="${cfg.themeId}">
+        <ellipse cx="${cfg.cx}" cy="${cfg.cy}" rx="${cfg.rx}" ry="${cfg.ry}" fill="${cfg.fill}" stroke="${cfg.border}" stroke-width="1.5" />
+        ${allLines.map((line,i)=>`<text x="${cfg.cx}" y="${cfg.cy + (i-(allLines.length-1)/2)*14 + 4}" text-anchor="middle" style="font-size:11px; font-weight:${i===0?700:500}; fill:${cfg.text};">${escapeHtml(line)}</text>`).join('')}
+      </g>`;
+  });
 
   // hub nodes (International Trends / Narratives and Values / Diverse Local Practices / Gaps in Existing Institutions)
   let hubsSvg = '';
@@ -1164,27 +1199,10 @@ function diagramSVG(){
     const p = hubPos[h.wgId]; if(!p) return;
     const wg = p.wg;
     const labelLines = wrapText(L(wg,'name'), wrapLimit);
-    const note = hubCollaboratorNote(wg);
     hubsSvg += `
       <g class="petal" data-wg="${wg.id}" transform="translate(${p.x},${p.y})">
-        <circle r="${hubNodeR}" fill="#fff" stroke="var(--ink)" stroke-width="2" />
-        ${labelLines.map((line,i)=>`<text x="0" y="${(i-(labelLines.length-1)/2)*16 - (note?8:0)}" text-anchor="middle" style="font-size:14px; font-weight:600; fill:var(--ink);">${line}</text>`).join('')}
-        ${note ? wrapText(note, STATE.lang==='ja'?10:16).map((line,i,arr)=>`<text style="font-size:9px; fill:var(--plum); font-family:'IBM Plex Mono',monospace;" x="0" y="${(labelLines.length)/2*16 + 6 + i*11}" text-anchor="middle">${line}</text>`).join('') : ''}
-      </g>`;
-  });
-
-  // each WG: text label + speech bubble, positioned near the hub it relates to.
-  // Proximity (not a connecting line) is what shows the relationship.
-  let wgSvg = '';
-  Object.keys(WG_BUBBLE_LAYOUT).forEach(wgId=>{
-    const wg = byId(STATE.wgs, wgId); if(!wg) return;
-    const layout = WG_BUBBLE_LAYOUT[wgId];
-    const labelX = cx + layout.labelDx, labelY = cy + layout.labelDy;
-    const bubbleX = cx + layout.bubbleDx, bubbleY = cy + layout.bubbleDy;
-    wgSvg += `
-      <g class="petal" data-wg="${wg.id}">
-        ${wgTextLabel(wg, labelX, labelY, layout.labelAnchor)}
-        ${speechBubble(bubbleX, bubbleY, layout.bubbleRx, layout.bubbleRy, cx, cy, L(wg,'bubbleLabel'))}
+        <ellipse rx="${hubRx}" ry="${hubRy}" fill="#fff" stroke="var(--ink)" stroke-width="2" />
+        ${labelLines.map((line,i)=>`<text x="0" y="${(i-(labelLines.length-1)/2)*16}" text-anchor="middle" style="font-size:14px; font-weight:600; fill:var(--ink);">${line}</text>`).join('')}
       </g>`;
   });
 
@@ -1192,17 +1210,26 @@ function diagramSVG(){
   const centerLines = wrapText(centerText, STATE.lang==='ja' ? 9 : 15);
 
   return `
-  <svg viewBox="0 0 1180 900" style="width:100%; height:auto;">
+  <svg viewBox="0 0 1700 1400" style="width:100%; height:auto;">
     <defs>
-      <marker id="tocArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-faint)" />
+      <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="${DIAG.red}" />
+      </marker>
+      <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="${DIAG.blue}" />
+      </marker>
+      <marker id="arrowLavender" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="${DIAG.lavender}" />
       </marker>
     </defs>
-    ${arrows}
-    ${wgSvg}
-    <circle cx="${cx}" cy="${cy}" r="${coreR}" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5" />
+    ${meshSvg}
+    ${connectorSvg}
+    ${collabSvg}
+    ${arrowSvg}
+    <ellipse cx="${cx}" cy="${cy}" rx="${coreRx}" ry="${coreRy}" fill="#fff" stroke="var(--ink)" stroke-width="2" />
     ${centerLines.map((line,i)=>`<text class="center-label" x="${cx}" y="${cy + (i-(centerLines.length-1)/2)*18 + 5}">${line}</text>`).join('')}
     ${hubsSvg}
+    ${boxesSvg}
   </svg>`;
 }
 
