@@ -309,6 +309,7 @@ const STRINGS = {
     tab_themes:'Themes', tab_authors:'Authors', tab_settings:'Settings',
     ov_eyebrow:'Theory of change', ov_wg_heading:'Working groups — click to open',
     ov_no_lead:'no lead assigned', edit:'edit', save:'Save', cancel:'Cancel',
+    diagram_team_in_dev:'team in development',
     ov_note:(n)=>`${n} people tracked · publications auto-pull from researchmap on open (cached ~6h, shared across the team).`,
     back_all_wg:'← All working groups', back_all_themes:'← All themes',
     people_heading:(n)=>`People (${n})`, no_one_wg:'No one is assigned to this working group yet. Add someone from the Authors tab.',
@@ -320,6 +321,9 @@ const STRINGS = {
     themes_eyebrow:'Cross-cutting', themes_heading:'Themes',
     themes_lede:'Themes cut across working groups — they group people and publications by concept rather than by WG.',
     theme_people_count:(n)=>`${n} people`, theme_label:'Theme',
+    add_theme_btn:'+ Add theme', edit_theme_title:'Edit theme', add_theme_title:'Add theme',
+    theme_f_name:'Name', theme_f_name_ja:'Name (Japanese)', theme_f_desc:'Description', theme_f_desc_ja:'Description (Japanese)', theme_f_color:'Color',
+    remove_theme:'Remove theme', theme_name_required:'Name is required', theme_removed:'Theme removed',
     ideas_eyebrow:'Literature by working group', ideas_heading:'Key Ideas',
     ideas_lede:'Recent research for each working group, anchored in the project\u2019s own pluriverse framework \u2014 relational values, multispecies commons, more-than-human agency, embodied knowledge \u2014 and drawn from environmental humanities and ecological science journals, both international and Japanese. Expand a working group to search.',
     ideas_journal_note:'Searches combine each working group\u2019s topic with pluriverse-framework vocabulary (multispecies, relational, more-than-human, commons, embodied knowledge) and are tuned toward environmental humanities and ecological/social-ecological science venues (e.g. Environmental Humanities, Journal of Political Ecology, Ecology and Society, Land Use Policy, Agriculture and Human Values internationally; 環境社会学研究, ランドスケープ研究, 農村計画学会誌, 森林科学 among Japanese venues) \u2014 keyword-based, so treat results as a starting point rather than a strict journal filter.',
@@ -370,6 +374,7 @@ const STRINGS = {
     tab_themes:'テーマ', tab_authors:'メンバー一覧', tab_settings:'設定',
     ov_eyebrow:'セオリー・オブ・チェンジ', ov_wg_heading:'ワーキンググループ（クリックで詳細）',
     ov_no_lead:'リーダー未設定', edit:'編集', save:'保存', cancel:'キャンセル',
+    diagram_team_in_dev:'team in development（編成中）',
     ov_note:(n)=>`${n}名を管理中 · 各カードを開くとresearchmapから業績を自動取得します（約6時間キャッシュ・チーム全体で共有）。`,
     back_all_wg:'← すべてのワーキンググループへ', back_all_themes:'← すべてのテーマへ',
     people_heading:(n)=>`メンバー（${n}名）`, no_one_wg:'このワーキンググループにはまだ誰も登録されていません。「メンバー一覧」から追加してください。',
@@ -381,6 +386,9 @@ const STRINGS = {
     themes_eyebrow:'横断テーマ', themes_heading:'テーマ',
     themes_lede:'テーマはワーキンググループを横断する概念で、WGではなく概念単位でメンバーと業績をまとめます。',
     theme_people_count:(n)=>`${n}名`, theme_label:'テーマ',
+    add_theme_btn:'+ テーマを追加', edit_theme_title:'テーマを編集', add_theme_title:'テーマを追加',
+    theme_f_name:'名前', theme_f_name_ja:'名前（日本語）', theme_f_desc:'説明', theme_f_desc_ja:'説明（日本語）', theme_f_color:'色',
+    remove_theme:'テーマを削除', theme_name_required:'名前を入力してください', theme_removed:'テーマを削除しました',
     ideas_eyebrow:'ワーキンググループ別の文献', ideas_heading:'キーアイデア',
     ideas_lede:'各ワーキンググループに関連する最新研究を、プロジェクト自身のプルリバース・フレームワーク——関係価値、多種コモンズ、人間以外の存在のエージェンシー、身体化された知——に根ざしながら、環境人文学および生態学系のジャーナル（国際・国内の両方）から集めます。ワーキンググループを開くと検索できます。',
     ideas_journal_note:'検索では各ワーキンググループのテーマにプルリバース・フレームワークの語彙（多種、関係論的、人間以外の存在、コモンズ、身体化された知）を組み合わせ、環境人文学および生態学・社会生態学系の媒体（国際的にはEnvironmental Humanities、Journal of Political Ecology、Ecology and Society、Land Use Policy、Agriculture and Human Valuesなど、国内では環境社会学研究、ランドスケープ研究、農村計画学会誌、森林科学など）を意識しています。厳密な誌面フィルタではないため、あくまで出発点としてご利用ください。',
@@ -557,7 +565,8 @@ const DEFAULT_WGS = [
     focusConcepts:['Land change (nonlinear & uncertain)','Political representation of nonhumans'],
     focusConceptsJa:['土地の変化（非線形・不確実）','非人間の政治的代表'],
     queryTerms:'IPBES pluriversal multispecies governance nonhuman political representation land use uncertainty',
-    queryTermsJa:'IPBES プルリバース 多種ガバナンス 非人間 政治的代表 土地利用 不確実性' },
+    queryTermsJa:'IPBES プルリバース 多種ガバナンス 非人間 政治的代表 土地利用 不確実性',
+    bubbleLabel:'IPBES', bubbleLabelJa:'IPBES', diagramNote:'Intl Case Database', diagramNoteJa:'国際事例データベース', teamInDevelopment:false, },
   { id:'wg6', code:'WG6', name:'Narratives and Values', nameJa:'ナラティブと価値観', angle:-30, color:COLORS.plum,
     subtitle:'Worldviews of "agroecology"', subtitleJa:'「アグロエコロジー」の世界観',
     description:'Examines competing worldviews and narratives — including relational values — behind agroecological and land-use discourse.',
@@ -565,7 +574,8 @@ const DEFAULT_WGS = [
     focusConcepts:['Land agency','Relational values','Worldviews'],
     focusConceptsJa:['土地のエージェンシー','関係価値','世界観'],
     queryTerms:'agroecology pluriversal worldviews relational values multispecies more-than-human ontology',
-    queryTermsJa:'アグロエコロジー プルリバース 世界観 関係価値 多種 存在論' },
+    queryTermsJa:'アグロエコロジー プルリバース 世界観 関係価値 多種 存在論',
+    bubbleLabel:'Worldviews', bubbleLabelJa:'世界観', diagramNote:'Worldviews of "agroecology"', diagramNoteJa:'「アグロエコロジー」の世界観', teamInDevelopment:false, },
   { id:'wg4', code:'WG4', name:'Diverse Local Practices', nameJa:'多様な地域の実践', angle:30, color:COLORS.sage,
     subtitle:'New Forest Use and Values · Pattern Languages', subtitleJa:'新しい森林利用と価値観・パターンランゲージ',
     description:'Documents diverse, place-based forest and agricultural practices, working toward a shared "pattern language" of local land use.',
@@ -573,7 +583,8 @@ const DEFAULT_WGS = [
     focusConcepts:['Ways of knowing (embodied)','Landscape cohabitation','Pattern languages'],
     focusConceptsJa:['知る方法（身体化された知）','ランドスケープの共生','パターンランゲージ'],
     queryTerms:'forest use local practices pluriversal multispecies cohabitation embodied knowledge pattern language',
-    queryTermsJa:'森林利用 地域実践 プルリバース 多種共生 身体化された知 パターンランゲージ' },
+    queryTermsJa:'森林利用 地域実践 プルリバース 多種共生 身体化された知 パターンランゲージ',
+    bubbleLabel:'Pattern Languages', bubbleLabelJa:'パターンランゲージ', diagramNote:'New Forest Use and Values', diagramNoteJa:'新しい森林利用と価値観', teamInDevelopment:true, },
   { id:'wg3', code:'WG3', name:'Institutional Workaround', nameJa:'制度的ワークアラウンド', angle:90, color:COLORS.moss,
     subtitle:'Participatory landscape management', subtitleJa:'参加型ランドスケープ管理',
     description:'Studies how communities work around gaps in formal institutions through participatory landscape management.',
@@ -581,7 +592,8 @@ const DEFAULT_WGS = [
     focusConcepts:['Landscape design (multispecies co-design)','Commoning practices'],
     focusConceptsJa:['ランドスケープデザイン（多種共同デザイン）','コモニングの実践'],
     queryTerms:'participatory landscape management pluriversal multispecies commoning co-design institutional workaround',
-    queryTermsJa:'参加型ランドスケープ管理 プルリバース 多種コモニング 共同デザイン 制度' },
+    queryTermsJa:'参加型ランドスケープ管理 プルリバース 多種コモニング 共同デザイン 制度',
+    bubbleLabel:'Institutional Workaround', bubbleLabelJa:'制度的ワークアラウンド', diagramNote:'Participatory landscape management', diagramNoteJa:'参加型ランドスケープ管理', teamInDevelopment:false, },
   { id:'wg1', code:'WG1', name:'Gaps in Existing Institutions', nameJa:'既存制度の間隙', angle:150, color:COLORS.clay,
     subtitle:'Proposal of new institution — "Amplification?"', subtitleJa:'新制度の提案 ―「増幅？」',
     description:'Identifies structural gaps in existing land-use institutions and explores proposals for new institutional forms.',
@@ -589,7 +601,8 @@ const DEFAULT_WGS = [
     focusConcepts:['Land ownership (multispecies commons)','Ownership systems'],
     focusConceptsJa:['土地の所有（多種コモンズ）','所有制度の実践'],
     queryTerms:'land use institutions gaps pluriversal multispecies commons more-than-human property new institutional design',
-    queryTermsJa:'土地利用制度 間隙 プルリバース 多種コモンズ 人間以外の存在の財産権 新制度' },
+    queryTermsJa:'土地利用制度 間隙 プルリバース 多種コモンズ 人間以外の存在の財産権 新制度',
+    bubbleLabel:'Proposal of new institution', bubbleLabelJa:'新制度の提案', diagramNote:'Amplification?', diagramNoteJa:'増幅？', teamInDevelopment:true, },
   { id:'wg2', code:'WG2', name:'Local Certification', nameJa:'地域認証', angle:210, color:COLORS.ochre,
     subtitle:'Certification schemes', subtitleJa:'認証制度',
     description:'Investigates local and community-driven certification schemes as an institutional response to land-use change.',
@@ -597,7 +610,8 @@ const DEFAULT_WGS = [
     focusConcepts:['Land wellbeing (multispecies flourishing)','Certification as institutional response'],
     focusConceptsJa:['土地とウェルビーイング（多種の繁栄）','制度的対応としての認証'],
     queryTerms:'local certification schemes pluriversal multispecies wellbeing reciprocal flourishing agriculture forestry',
-    queryTermsJa:'地域認証制度 プルリバース 多種ウェルビーイング 互恵 農業 林業' },
+    queryTermsJa:'地域認証制度 プルリバース 多種ウェルビーイング 互恵 農業 林業',
+    bubbleLabel:'certification', bubbleLabelJa:'認証', diagramNote:'Local Certification', diagramNoteJa:'地域認証', teamInDevelopment:true, },
 ];
 
 const DEFAULT_THEMES = [
@@ -635,7 +649,7 @@ const DEFAULT_AUTHORS = [
   { id:'a-rupprecht', name:'RUPPRECHT Christoph', affiliation:'', role:'WG Lead',
     researchmapSlug:'', kakenUrl:'', externalUrl:'https://orcid.org/0000-0003-1809-2129',
     wgIds:['wg5'], themeIds:['t-intl-case'], notes:'ORCID linked; add researchmap slug to enable auto-pull.', status:'' },
-  { id:'a-nishikawa', name:'NISHIKAWA Yoshiaki', affiliation:'Ryukoku University', role:'WG Lead / Project PI',
+  { id:'a-nishikawa', name:'NISHIKAWA Yoshiaki', affiliation:'Ryukoku University (Project PI)', role:'WG Lead',
     researchmapSlug:'', kakenUrl:'https://nrid.nii.ac.jp/nrid/1000080290641/', externalUrl:'',
     wgIds:['wg6'], themeIds:['t-worldviews'], notes:'Add researchmap slug to enable auto-pull.', status:'' },
   { id:'a-mitsumata', name:'MITSUMATA Gaku', affiliation:'', role:'Collaborator',
@@ -662,6 +676,7 @@ let STATE = {
   ideaCache:{}, // wgId -> {loading, error, items, fetchedAt}
   expandedIdeas:{}, // wgId -> bool
   editingMeta:false, editingWg:null, showAuthorForm:false, editingAuthorId:null, expandedAuthors:{},
+  showThemeForm:false, editingThemeId:null,
 };
 
 async function loadAll(){
@@ -1036,12 +1051,21 @@ const HUB_LAYOUT = [
   { wgId:'wg4', angle:90  }, // Diverse Local Practices - bottom
   { wgId:'wg1', angle:180 }, // Gaps in Existing Institutions - left
 ];
-const SATELLITE_LAYOUT = [
-  { wgId:'wg2', angle:205 }, // Local Certification - near Gaps, upper side
-  { wgId:'wg3', angle:135 }, // Institutional Workaround - between Gaps and Diverse Local Practices
-];
 // Collaborator call-outs shown inside two of the hubs in the source diagram
 const HUB_COLLABORATOR_THEME = { wg1:'t-commoning', wg6:'t-relational' };
+
+// Each of the 6 WGs gets a text label ("WG# [Lead]" + topic) and a small speech-bubble
+// tag, both positioned near the hub they relate to — proximity, not connecting lines,
+// is what shows the relationship, matching the source Theory of Change diagram.
+// Offsets are relative to the diagram center (cx,cy).
+const WG_BUBBLE_LAYOUT = {
+  wg5: { labelDx: 345, labelDy:-255, labelAnchor:'start',  bubbleDx: 300, bubbleDy:-330, bubbleRx:78, bubbleRy:34 },
+  wg2: { labelDx:-345, labelDy:-255, labelAnchor:'end',    bubbleDx:-395, bubbleDy:-170, bubbleRx:78, bubbleRy:32 },
+  wg6: { labelDx: 380, labelDy: 115, labelAnchor:'start',  bubbleDx: 440, bubbleDy:  25, bubbleRx:80, bubbleRy:40 },
+  wg4: { labelDx: 130, labelDy: 335, labelAnchor:'start',  bubbleDx: 300, bubbleDy: 370, bubbleRx:92, bubbleRy:32 },
+  wg3: { labelDx:-300, labelDy: 365, labelAnchor:'end',    bubbleDx:-235, bubbleDy: 295, bubbleRx:100,bubbleRy:34 },
+  wg1: { labelDx:-390, labelDy: 115, labelAnchor:'end',    bubbleDx:-450, bubbleDy: 225, bubbleRx:92, bubbleRy:38 },
+};
 
 function surname(fullName){
   const first = (fullName||'').split(' ')[0] || '';
@@ -1066,12 +1090,43 @@ function arrowLine(x1,y1,x2,y2,color,width,double){
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" ${markers} />`;
 }
 
+// A thought-bubble ellipse with a small tail pointing back toward the diagram center,
+// matching the speech-bubble annotations in the source diagram.
+function speechBubble(cx,cy,rx,ry,tailTowardX,tailTowardY,label){
+  const angle = Math.atan2(tailTowardY-cy, tailTowardX-cx);
+  const spread = 0.3;
+  const bx1 = cx+rx*Math.cos(angle-spread), by1 = cy+ry*Math.sin(angle-spread);
+  const bx2 = cx+rx*Math.cos(angle+spread), by2 = cy+ry*Math.sin(angle+spread);
+  const tipX = cx+rx*1.35*Math.cos(angle), tipY = cy+ry*1.55*Math.sin(angle);
+  const lines = wrapText(label, STATE.lang==='ja' ? 7 : 13);
+  return `
+    <path d="M${bx1},${by1} L${tipX},${tipY} L${bx2},${by2} Z" fill="var(--card)" stroke="var(--clay)" stroke-width="1.5" />
+    <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="var(--card)" stroke="var(--clay)" stroke-width="1.5" />
+    ${lines.map((line,i)=>`<text x="${cx}" y="${cy + (i-(lines.length-1)/2)*13 + 4}" text-anchor="middle" style="font-size:11.5px; font-weight:600; fill:var(--ink);">${line}</text>`).join('')}
+  `;
+}
+
+function wgTextLabel(wg, x, y, anchor){
+  const leads = authorsForWg(wg.id).filter(a=>a.role==='WG Lead').map(a=>a.name);
+  const line1 = leads.length ? `${wg.code}  [${leads.join(', ')}]` : wg.code;
+  const line1Wrapped = wrapText(line1, STATE.lang==='ja' ? 11 : 22);
+  const line2Wrapped = wrapText(L(wg,'diagramNote'), STATE.lang==='ja' ? 11 : 24);
+  let lines = [];
+  line1Wrapped.forEach(l=>lines.push({text:l, cls:'wg-label-lead'}));
+  line2Wrapped.forEach(l=>lines.push({text:l, cls:'wg-label-note'}));
+  if(wg.teamInDevelopment) lines.push({text:t('diagram_team_in_dev'), cls:'wg-label-dev'});
+  return lines.map((l,i)=>{
+    const size = l.cls==='wg-label-lead' ? 13 : (l.cls==='wg-label-dev' ? 10 : 12);
+    const weight = l.cls==='wg-label-lead' ? 700 : 500;
+    const color = l.cls==='wg-label-dev' ? 'var(--indigo)' : 'var(--clay)';
+    return `<text x="${x}" y="${y + i*16}" text-anchor="${anchor}" style="font-size:${size}px; font-weight:${weight}; fill:${color};">${escapeHtml(l.text)}</text>`;
+  }).join('');
+}
+
 function diagramSVG(){
-  const cx=480, cy=380, coreR=98;
-  const hubR=230, hubNodeR=80;
-  const satR=330, satNodeR=52;
+  const cx=590, cy=460, coreR=95;
+  const hubR=230, hubNodeR=85;
   const wrapLimit = STATE.lang==='ja' ? 8 : 12;
-  const satWrapLimit = STATE.lang==='ja' ? 6 : 9;
 
   const hubPos = {};
   HUB_LAYOUT.forEach(h=>{
@@ -1103,7 +1158,7 @@ function diagramSVG(){
     arrows += arrowLine(sx,sy,ex,ey,'var(--ink-faint)',1.3,true);
   }
 
-  // hub nodes
+  // hub nodes (International Trends / Narratives and Values / Diverse Local Practices / Gaps in Existing Institutions)
   let hubsSvg = '';
   HUB_LAYOUT.forEach(h=>{
     const p = hubPos[h.wgId]; if(!p) return;
@@ -1112,28 +1167,24 @@ function diagramSVG(){
     const note = hubCollaboratorNote(wg);
     hubsSvg += `
       <g class="petal" data-wg="${wg.id}" transform="translate(${p.x},${p.y})">
-        <circle r="${hubNodeR}" fill="#fff" stroke="${wg.color}" stroke-width="2" />
-        <text class="petal-sub" x="0" y="${-hubNodeR+18}" text-anchor="middle">${wg.code}</text>
-        ${labelLines.map((line,i)=>`<text class="petal-label" x="0" y="${(i-(labelLines.length-1)/2)*14}" text-anchor="middle">${line}</text>`).join('')}
-        ${note ? `<text style="font-size:7.5px; fill:var(--plum); font-family:'IBM Plex Mono',monospace;" x="0" y="${(labelLines.length)/2*14+14}" text-anchor="middle">${note}</text>` : ''}
+        <circle r="${hubNodeR}" fill="#fff" stroke="var(--ink)" stroke-width="2" />
+        ${labelLines.map((line,i)=>`<text x="0" y="${(i-(labelLines.length-1)/2)*16 - (note?8:0)}" text-anchor="middle" style="font-size:14px; font-weight:600; fill:var(--ink);">${line}</text>`).join('')}
+        ${note ? wrapText(note, STATE.lang==='ja'?10:16).map((line,i,arr)=>`<text style="font-size:9px; fill:var(--plum); font-family:'IBM Plex Mono',monospace;" x="0" y="${(labelLines.length)/2*16 + 6 + i*11}" text-anchor="middle">${line}</text>`).join('') : ''}
       </g>`;
   });
 
-  // satellites, each with a dashed connector toward its hub / the edge between hubs
-  let satsSvg = '';
-  SATELLITE_LAYOUT.forEach(s=>{
-    const wg = byId(STATE.wgs, s.wgId); if(!wg) return;
-    const rad = s.angle*Math.PI/180;
-    const x = cx+satR*Math.cos(rad), y = cy+satR*Math.sin(rad);
-    const nearX = cx+(hubR+hubNodeR+6)*Math.cos(rad), nearY = cy+(hubR+hubNodeR+6)*Math.sin(rad);
-    const farX = x-satNodeR*Math.cos(rad), farY = y-satNodeR*Math.sin(rad);
-    arrows += `<line x1="${nearX}" y1="${nearY}" x2="${farX}" y2="${farY}" stroke="${wg.color}" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.75" />`;
-    const labelLines = wrapText(L(wg,'name'), satWrapLimit);
-    satsSvg += `
-      <g class="petal" data-wg="${wg.id}" transform="translate(${x},${y})">
-        <circle r="${satNodeR}" fill="var(--card)" stroke="${wg.color}" stroke-width="1.6" stroke-dasharray="3 2" />
-        <text style="font-size:8.5px; fill:var(--ink-soft); font-family:'IBM Plex Mono',monospace;" x="0" y="${-satNodeR+14}" text-anchor="middle">${wg.code}</text>
-        ${labelLines.map((line,i)=>`<text style="font-size:10px; font-weight:600; fill:var(--ink);" x="0" y="${(i-(labelLines.length-1)/2)*11}" text-anchor="middle">${line}</text>`).join('')}
+  // each WG: text label + speech bubble, positioned near the hub it relates to.
+  // Proximity (not a connecting line) is what shows the relationship.
+  let wgSvg = '';
+  Object.keys(WG_BUBBLE_LAYOUT).forEach(wgId=>{
+    const wg = byId(STATE.wgs, wgId); if(!wg) return;
+    const layout = WG_BUBBLE_LAYOUT[wgId];
+    const labelX = cx + layout.labelDx, labelY = cy + layout.labelDy;
+    const bubbleX = cx + layout.bubbleDx, bubbleY = cy + layout.bubbleDy;
+    wgSvg += `
+      <g class="petal" data-wg="${wg.id}">
+        ${wgTextLabel(wg, labelX, labelY, layout.labelAnchor)}
+        ${speechBubble(bubbleX, bubbleY, layout.bubbleRx, layout.bubbleRy, cx, cy, L(wg,'bubbleLabel'))}
       </g>`;
   });
 
@@ -1141,17 +1192,17 @@ function diagramSVG(){
   const centerLines = wrapText(centerText, STATE.lang==='ja' ? 9 : 15);
 
   return `
-  <svg viewBox="0 0 960 760" style="width:100%; height:auto;">
+  <svg viewBox="0 0 1180 900" style="width:100%; height:auto;">
     <defs>
       <marker id="tocArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-faint)" />
       </marker>
     </defs>
     ${arrows}
+    ${wgSvg}
     <circle cx="${cx}" cy="${cy}" r="${coreR}" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5" />
     ${centerLines.map((line,i)=>`<text class="center-label" x="${cx}" y="${cy + (i-(centerLines.length-1)/2)*18 + 5}">${line}</text>`).join('')}
     ${hubsSvg}
-    ${satsSvg}
   </svg>`;
 }
 
@@ -1614,14 +1665,52 @@ function renderTeam(){
 
 /* ============================= RENDER: THEMES ============================= */
 
+function themeFormHtml(existing){
+  const th = existing || {name:'', nameJa:'', description:'', descriptionJa:'', color:COLORS.moss};
+  const colorEntries = Object.entries(COLORS);
+  return `
+    <div class="form-panel">
+      <p class="eyebrow">${existing ? t('edit_theme_title') : t('add_theme_title')}</p>
+      <div class="form-grid">
+        <div class="field"><label>${t('theme_f_name')}</label><input id="th-name" value="${th.name}" placeholder="e.g. Multispecies Ethics" /></div>
+        <div class="field"><label>${t('theme_f_name_ja')}</label><input id="th-name-ja" value="${th.nameJa||''}" placeholder="例：多種倫理" /></div>
+        <div class="field full"><label>${t('theme_f_desc')}</label><input id="th-desc" value="${th.description}" placeholder="Short description" /></div>
+        <div class="field full"><label>${t('theme_f_desc_ja')}</label><input id="th-desc-ja" value="${th.descriptionJa||''}" placeholder="短い説明" /></div>
+        <div class="field full">
+          <label>${t('theme_f_color')}</label>
+          <div class="checks">
+            ${colorEntries.map(([key,val])=>`
+              <label class="check-pill" style="padding:5px 9px;">
+                <input type="radio" name="th-color" value="${val}" ${th.color===val?'checked':''}>
+                <span class="sw" style="background:${val}; width:14px; height:14px; display:inline-block; border-radius:50%;"></span>
+              </label>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" id="th-save">${existing ? t('save_changes') : t('add_theme_btn')}</button>
+        <button class="btn ghost" id="th-cancel">${t('cancel')}</button>
+        ${existing?`<button class="btn ghost" id="th-delete" style="color:var(--clay); margin-left:auto;">${t('remove_theme')}</button>`:''}
+      </div>
+    </div>
+  `;
+}
+
 function renderThemes(){
   document.getElementById('app').innerHTML = `
     <p class="eyebrow">${t('themes_eyebrow')}</p>
     <h2 class="section-title">${t('themes_heading')}</h2>
     <p class="lede">${t('themes_lede')}</p>
+    <div style="margin:16px 0;">
+      <button class="btn" id="add-theme-btn">${t('add_theme_btn')}</button>
+    </div>
+    ${STATE.showThemeForm ? themeFormHtml(STATE.editingThemeId ? byId(STATE.themes, STATE.editingThemeId) : null) : ''}
     <div class="theme-grid">
       ${STATE.themes.map(th=>`
         <div class="theme-card" style="border-top-color:${th.color}" data-theme="${th.id}">
+          <div style="display:flex; justify-content:flex-end;">
+            <button class="icon-btn" data-edit-theme="${th.id}">${t('edit')}</button>
+          </div>
           <h3>${L(th,'name')}</h3>
           <p>${L(th,'description')}</p>
           <div class="count">${t('theme_people_count', authorsForTheme(th.id).length)}</div>
@@ -1629,7 +1718,56 @@ function renderThemes(){
     </div>
   `;
   document.querySelectorAll('.theme-card').forEach(c=>{
-    c.addEventListener('click', ()=>goto('theme', c.dataset.theme));
+    c.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-edit-theme]')) return;
+      goto('theme', c.dataset.theme);
+    });
+  });
+  document.getElementById('add-theme-btn').addEventListener('click', ()=>{
+    STATE.showThemeForm=true; STATE.editingThemeId=null; render();
+  });
+  document.querySelectorAll('[data-edit-theme]').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      STATE.showThemeForm=true; STATE.editingThemeId=b.dataset.editTheme; render();
+    });
+  });
+  const cancelBtn = document.getElementById('th-cancel');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ STATE.showThemeForm=false; STATE.editingThemeId=null; render(); });
+
+  const saveBtn = document.getElementById('th-save');
+  if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+    const name = document.getElementById('th-name').value.trim();
+    if(!name){ showToast(t('theme_name_required')); return; }
+    const colorInput = document.querySelector('input[name="th-color"]:checked');
+    const payload = {
+      name,
+      nameJa: document.getElementById('th-name-ja').value.trim(),
+      description: document.getElementById('th-desc').value.trim(),
+      descriptionJa: document.getElementById('th-desc-ja').value.trim(),
+      color: colorInput ? colorInput.value : COLORS.moss,
+    };
+    if(STATE.editingThemeId){
+      const existing = byId(STATE.themes, STATE.editingThemeId);
+      Object.assign(existing, payload);
+    } else {
+      payload.id = 't-' + name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.random().toString(36).slice(2,6);
+      STATE.themes.push(payload);
+    }
+    await storeSet('pluriverse:themes', STATE.themes);
+    STATE.showThemeForm=false; STATE.editingThemeId=null;
+    render(); showToast(t('saved'));
+  });
+
+  const deleteBtn = document.getElementById('th-delete');
+  if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+    const themeId = STATE.editingThemeId;
+    STATE.themes = STATE.themes.filter(th=>th.id!==themeId);
+    STATE.authors.forEach(a=>{ if(a.themeIds) a.themeIds = a.themeIds.filter(id=>id!==themeId); });
+    await storeSet('pluriverse:themes', STATE.themes);
+    await storeSet('pluriverse:authors', STATE.authors);
+    STATE.showThemeForm=false; STATE.editingThemeId=null;
+    render(); showToast(t('theme_removed'));
   });
 }
 
@@ -1665,7 +1803,7 @@ function authorFormHtml(existing){
         <div class="field"><label>${t('f_name')}</label><input id="f-name" value="${a.name}" placeholder="e.g. TANAKA Yuki" /></div>
         <div class="field"><label>${t('f_role')}</label>
           <select id="f-role">
-            ${['WG Lead','Collaborator','PI','Advisor'].map(r=>`<option ${a.role===r?'selected':''}>${r}</option>`).join('')}
+            ${['WG Lead','Team Lead','Project Member','Collaborator','PI','Advisor'].map(r=>`<option ${a.role===r?'selected':''}>${r}</option>`).join('')}
           </select>
         </div>
         <div class="field"><label>${t('f_affil')}</label><input id="f-affil" value="${a.affiliation}" placeholder="e.g. Ryukoku University" /></div>
