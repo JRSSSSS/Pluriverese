@@ -305,7 +305,7 @@
 
 const STRINGS = {
   en:{
-    tab_overview:'Overview', tab_ideas:'Key Ideas', tab_feed:'Research Feed', tab_team:'Team',
+    tab_overview:'Overview', tab_ideas:'Key Ideas', tab_cases:'Case Inputs', tab_feed:'Research Feed', tab_team:'Team',
     tab_themes:'Themes', tab_authors:'Authors', tab_settings:'Settings',
     ov_eyebrow:'Theory of change', ov_wg_heading:'Working groups — click to open',
     ov_no_lead:'no lead assigned', edit:'edit', save:'Save', cancel:'Cancel',
@@ -367,10 +367,20 @@ const STRINGS = {
     feed_tag_label:'Tag a working group (optional)', feed_submit:'Post to feed', feed_empty:'Nothing posted yet — be the first.',
     feed_title_required:'Add a title first', feed_posted:'Posted', feed_removed:'Removed',
     feed_posted_by:(name,date)=>`posted by ${name||'anonymous'} · ${date}`,
+    cases_eyebrow:'Pluriversal Land Use Database', cases_heading:'Case Inputs',
+    cases_lede:'An early, deliberately simple case database. If you know of a case that feels pluriversal, add it below \u2014 a few sentences is enough.',
+    cases_form_title:'Add a case', case_name_ph:'Case name', case_summary_ph:'Short summary (100 words or less is fine)',
+    case_link_ph:'Link', case_pluriversal_ph:'What makes it pluriversal or special? (subjective is fine)',
+    cases_examples_note:'Subjective is completely fine \u2014 trust your instinct. A few angles from our framework that might help: land treated as a living relationship rather than a resource; multispecies or more-than-human agency in decision-making; commons-based stewardship rather than private ownership; embodied, indigenous, or intuitive ways of knowing the land; nonhuman interests represented in governance; multispecies cohabitation rather than exclusionary use.',
+    cases_submit:'Add case', case_name_required:'Add a case name first', case_added:'Case added', case_removed:'Case removed',
+    cases_empty:'No cases yet \u2014 add the first one above.', case_pluriversal_label:'What makes it pluriversal:',
+    pw_gate_eyebrow:'Pluriversal Land Use', pw_gate_heading:'This dashboard is password-protected',
+    pw_gate_lede:'Enter the team password to continue.', pw_gate_placeholder:'Password',
+    pw_gate_wrong:'That password isn\u2019t right \u2014 try again.', pw_gate_submit:'Enter',
     loading_project:'Loading project data…',
   },
   ja:{
-    tab_overview:'概要', tab_ideas:'キーアイデア', tab_feed:'研究フィード', tab_team:'チーム',
+    tab_overview:'概要', tab_ideas:'キーアイデア', tab_cases:'事例入力', tab_feed:'研究フィード', tab_team:'チーム',
     tab_themes:'テーマ', tab_authors:'メンバー一覧', tab_settings:'設定',
     ov_eyebrow:'セオリー・オブ・チェンジ', ov_wg_heading:'ワーキンググループ（クリックで詳細）',
     ov_no_lead:'リーダー未設定', edit:'編集', save:'保存', cancel:'キャンセル',
@@ -432,6 +442,16 @@ const STRINGS = {
     feed_tag_label:'ワーキンググループにタグ付け（任意）', feed_submit:'フィードに投稿', feed_empty:'まだ投稿がありません。最初の投稿をどうぞ。',
     feed_title_required:'先にタイトルを入力してください', feed_posted:'投稿しました', feed_removed:'削除しました',
     feed_posted_by:(name,date)=>`投稿者：${name||'匿名'} · ${date}`,
+    cases_eyebrow:'プルリバーサル・ランドユース・データベース', cases_heading:'事例入力',
+    cases_lede:'まだ初期段階の、あえてシンプルな事例データベースです。プルリバースだと感じる事例を知っていたら、以下に追加してください——数文で十分です。',
+    cases_form_title:'事例を追加', case_name_ph:'事例名', case_summary_ph:'短い要約（100語程度で十分です）',
+    case_link_ph:'リンク', case_pluriversal_ph:'何がプルリバース的・特別だと感じますか？（主観的で構いません）',
+    cases_examples_note:'主観的で全く問題ありません——直感を信じてください。参考になりそうな観点をいくつか挙げます：土地を資源ではなく生きた関係として捉える；意思決定における多種・人間以外の存在のエージェンシー；私有ではなくコモンズ的な管理；身体化された・先住民的・直感的な土地の知り方；ガバナンスにおける非人間の利害の代表；排他的な利用ではなく多種の共生。',
+    cases_submit:'事例を追加', case_name_required:'先に事例名を入力してください', case_added:'事例を追加しました', case_removed:'事例を削除しました',
+    cases_empty:'まだ事例はありません。上から最初の事例を追加してください。', case_pluriversal_label:'プルリバースである理由：',
+    pw_gate_eyebrow:'プルリバーサル・ランドユース', pw_gate_heading:'このダッシュボードはパスワードで保護されています',
+    pw_gate_lede:'続けるにはチームのパスワードを入力してください。', pw_gate_placeholder:'パスワード',
+    pw_gate_wrong:'パスワードが正しくありません。もう一度お試しください。', pw_gate_submit:'入る',
     loading_project:'プロジェクトデータを読み込み中…',
   }
 };
@@ -466,6 +486,13 @@ const FIREBASE_CONFIG = {
   appId: "1:269783983301:web:0a63d66f34592cf0e3fcac",
 };
 const FIRESTORE_COLLECTION = 'pluriverse_data';
+
+// ---- Simple shared password gate. This is a soft deterrent, not real security —
+// anyone who inspects the page source can see this value and bypass the check.
+// It's meant to keep casual visitors / search engines out, not to protect against
+// a determined person. For real per-person security, Firebase Authentication with
+// individual accounts would be needed instead. ----
+const SITE_PASSWORD = 'CHANGE_ME';
 
 let usingClaudeStorage = false;
 let firebaseReady = false;
@@ -671,7 +698,7 @@ let STATE = {
   lang:'en',
   view:{ name:'overview', param:null },
   meta:null, wgs:[], themes:[], authors:[], manualPubs:[], settings:{ciniiAppId:''},
-  manualSources:[], feedItems:[],
+  manualSources:[], feedItems:[], caseInputs:[],
   pubCache:{}, // authorId -> {loading, error, items, fetchedAt}
   ideaCache:{}, // wgId -> {loading, error, items, fetchedAt}
   expandedIdeas:{}, // wgId -> bool
@@ -706,6 +733,7 @@ async function loadAll(){
   STATE.settings = await storeGet('pluriverse:settings', {ciniiAppId:''});
   STATE.manualSources = await storeGet('pluriverse:manualSourcesByWg', []);
   STATE.feedItems = await storeGet('pluriverse:feed', []);
+  STATE.caseInputs = await storeGet('pluriverse:cases', []);
 }
 
 /* ============================= PUBLICATION FETCH ============================= */
@@ -1009,11 +1037,18 @@ function fmtDate(ts){
 
 /* ============================= RENDER: NAV ============================= */
 
+let siteLocked = true; // guards against the language toggle (or anything else) bypassing the password gate
+
 async function setLang(lang){
   if(STATE.lang === lang) return;
   STATE.lang = lang;
   await storeSet('pluriverse:lang', lang, false);
-  render();
+  if(siteLocked){
+    document.getElementById('app').innerHTML = passwordGateHtml(false);
+    wirePasswordGate();
+  } else {
+    render();
+  }
 }
 
 function renderLangToggle(){
@@ -1026,6 +1061,7 @@ function renderTabs(){
   const tabs = [
     {k:'overview', label:t('tab_overview')},
     {k:'ideas', label:t('tab_ideas')},
+    {k:'cases', label:t('tab_cases')},
     {k:'feed', label:t('tab_feed')},
     {k:'team', label:t('tab_team')},
     {k:'themes', label:t('tab_themes')},
@@ -1587,6 +1623,74 @@ function renderKeyIdeas(){
   });
 }
 
+/* ============================= RENDER: CASE INPUTS ============================= */
+// Early-stage, deliberately simple case database: name, short summary, link, and a
+// subjective note on what makes the case feel "pluriversal" — modeled on a plain
+// form rather than a structured taxonomy, since the project wants breadth first.
+
+function renderCases(){
+  const cases = [...STATE.caseInputs].sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
+  document.getElementById('app').innerHTML = `
+    <p class="eyebrow">${t('cases_eyebrow')}</p>
+    <h2 class="section-title">${t('cases_heading')}</h2>
+    <p class="lede">${t('cases_lede')}</p>
+
+    <div class="feed-form">
+      <p class="eyebrow" style="margin-bottom:12px;">${t('cases_form_title')}</p>
+      <div class="form-grid">
+        <div class="field full"><label>${t('case_name_ph')}</label><input id="case-name" placeholder="${t('case_name_ph')}" /></div>
+        <div class="field full"><label>${t('case_summary_ph')}</label><textarea id="case-summary" rows="3" placeholder="${t('case_summary_ph')}"></textarea></div>
+        <div class="field"><label>${t('case_link_ph')}</label><input id="case-link" placeholder="${t('case_link_ph')}" /></div>
+        <div class="field"><label>${t('feed_name_ph')}</label><input id="case-name-by" placeholder="${t('feed_name_ph')}" /></div>
+        <div class="field full">
+          <label>${t('case_pluriversal_ph')}</label>
+          <textarea id="case-pluriversal" rows="3" placeholder="${t('case_pluriversal_ph')}"></textarea>
+          <p class="fetch-note" style="margin-top:6px;">${t('cases_examples_note')}</p>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" id="case-submit">${t('cases_submit')}</button>
+      </div>
+    </div>
+
+    ${cases.length===0 ? `<div class="empty-state">${t('cases_empty')}</div>` : cases.map(c=>`
+      <div class="feed-item" data-case-item="${c.id}">
+        <div class="ftitle">${c.link ? `<a href="${c.link}" target="_blank" rel="noopener">${escapeHtml(c.name)}</a>` : escapeHtml(c.name)}</div>
+        ${c.summary ? `<div class="fnote">${escapeHtml(c.summary)}</div>` : ''}
+        ${c.pluriversalNote ? `<div class="fnote" style="margin-top:6px;"><span class="eyebrow" style="margin:0 6px 0 0;">${t('case_pluriversal_label')}</span>${escapeHtml(c.pluriversalNote)}</div>` : ''}
+        <div class="fmeta">
+          <span class="fby">${t('feed_posted_by', escapeHtml(c.addedByName), fmtDate(c.createdAt))}</span>
+          <button class="icon-btn" data-remove-case="${c.id}">×</button>
+        </div>
+      </div>`).join('')}
+  `;
+
+  document.getElementById('case-submit').addEventListener('click', async ()=>{
+    const name = document.getElementById('case-name').value.trim();
+    if(!name){ showToast(t('case_name_required')); return; }
+    const entry = {
+      id:'c-'+Math.random().toString(36).slice(2,9),
+      name,
+      summary: document.getElementById('case-summary').value.trim(),
+      link: document.getElementById('case-link').value.trim(),
+      pluriversalNote: document.getElementById('case-pluriversal').value.trim(),
+      addedByName: document.getElementById('case-name-by').value.trim(),
+      createdAt: Date.now(),
+    };
+    STATE.caseInputs.push(entry);
+    await storeSet('pluriverse:cases', STATE.caseInputs);
+    render(); showToast(t('case_added'));
+  });
+
+  document.querySelectorAll('[data-remove-case]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      STATE.caseInputs = STATE.caseInputs.filter(c=>c.id!==b.dataset.removeCase);
+      await storeSet('pluriverse:cases', STATE.caseInputs);
+      render(); showToast(t('case_removed'));
+    });
+  });
+}
+
 /* ============================= RENDER: RESEARCH FEED ============================= */
 
 function renderFeed(){
@@ -2021,6 +2125,7 @@ function render(){
   if(v.name==='overview') renderOverview();
   else if(v.name==='wg') renderWgDetail(v.param);
   else if(v.name==='ideas') renderKeyIdeas();
+  else if(v.name==='cases') renderCases();
   else if(v.name==='feed') renderFeed();
   else if(v.name==='team') renderTeam();
   else if(v.name==='themes') renderThemes();
@@ -2035,9 +2140,54 @@ document.getElementById('lang-toggle').addEventListener('click', (e)=>{
   if(btn) setLang(btn.dataset.lang);
 });
 
+/* ============================= PASSWORD GATE ============================= */
+// Soft deterrent only — see the SITE_PASSWORD comment above for why.
+
+function passwordGateHtml(wrong){
+  return `
+    <div style="max-width:360px; margin:100px auto 0; text-align:center;">
+      <p class="eyebrow">${t('pw_gate_eyebrow')}</p>
+      <h2 class="section-title">${t('pw_gate_heading')}</h2>
+      <p class="lede" style="margin:8px auto 20px;">${t('pw_gate_lede')}</p>
+      <input type="password" id="site-password-input" placeholder="${t('pw_gate_placeholder')}"
+             style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:6px; margin-bottom:10px; text-align:center; box-sizing:border-box;" />
+      ${wrong ? `<div class="fetch-note" style="color:var(--clay); margin-bottom:10px;">${t('pw_gate_wrong')}</div>` : ''}
+      <button class="btn" id="site-password-submit" style="width:100%; justify-content:center;">${t('pw_gate_submit')}</button>
+    </div>`;
+}
+
+function wirePasswordGate(){
+  document.getElementById('site-password-submit').addEventListener('click', checkPassword);
+  document.getElementById('site-password-input').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') checkPassword();
+  });
+  document.getElementById('site-password-input').focus();
+}
+
+async function checkPassword(){
+  const val = document.getElementById('site-password-input').value;
+  if(val === SITE_PASSWORD){
+    await storeSet('pluriverse:passwordOk', true, false); // private, per-browser
+    siteLocked = false;
+    await loadAll();
+    render();
+  } else {
+    document.getElementById('app').innerHTML = passwordGateHtml(true);
+    wirePasswordGate();
+  }
+}
+
 (async function init(){
-  document.getElementById('app').innerHTML = `<div class="empty-state">Loading project data… / プロジェクトデータを読み込み中…</div>`;
+  document.getElementById('app').innerHTML = `<div class="empty-state">Loading… / 読み込み中…</div>`;
   await initStorageBackend();
+  STATE.lang = await storeGet('pluriverse:lang', 'en', false);
+  const alreadyUnlocked = await storeGet('pluriverse:passwordOk', false, false);
+  if(!alreadyUnlocked){
+    document.getElementById('app').innerHTML = passwordGateHtml(false);
+    wirePasswordGate();
+    return;
+  }
+  siteLocked = false;
   await loadAll();
   render();
   if (!usingClaudeStorage && !firebaseReady) {
