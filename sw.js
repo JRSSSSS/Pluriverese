@@ -39,13 +39,11 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Never intercept cross-origin requests — those must always hit the network live.
   if (url.origin !== self.location.origin) return;
 
   const isHtml = req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/');
 
   if (isHtml) {
-    // Network-first: always try to get the latest deploy; fall back to cache only if offline.
     event.respondWith(
       fetch(req)
         .then((res) => {
@@ -60,7 +58,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache-first for instant loads, fall back to network.
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
