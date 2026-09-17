@@ -264,6 +264,9 @@
 
   .empty-state{text-align:center; padding:50px 20px; color:var(--ink-faint);}
   .icon-btn{background:none; border:none; color:var(--ink-faint); font-size:13px; padding:4px;}
+  .icon-btn:disabled{opacity:0.25; cursor:default;}
+  .reorder-btns{display:flex; flex-direction:column; gap:0; flex:none;}
+  .reorder-btns button{font-size:10px; line-height:1; padding:2px 4px;}
   .icon-btn:hover{color:var(--clay);}
   .loader-dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--gold); animation:pulse 1s infinite ease-in-out;}
   @keyframes pulse{0%,100%{opacity:0.3;}50%{opacity:1;}}
@@ -363,6 +366,8 @@ const STRINGS = {
     team_eyebrow:'Coordination', team_heading:'Team',
     team_lede:'Everyone on the project at a glance. "Currently working on" is a shared note anyone can update — it saves automatically.',
     status_placeholder:'Currently working on…', status_updated:'Status updated',
+    team_show_details:'Show publications & profile', team_hide_details:'Hide details',
+    team_move_up:'Move up', team_move_down:'Move down',
     dir_eyebrow:'Directory', dir_heading:'Authors',
     dir_lede:'Everyone tracked by the project. Add people here — publications pull automatically from their researchmap profile.',
     add_person:'+ Add person', edit_person_title:'Edit person', add_person_title:'Add person',
@@ -455,6 +460,8 @@ const STRINGS = {
     team_eyebrow:'チーム連携', team_heading:'チーム',
     team_lede:'プロジェクトの全メンバーを一覧できます。「現在取り組んでいること」は誰でも編集できる共有メモで、自動保存されます。',
     status_placeholder:'現在取り組んでいること…', status_updated:'ステータスを更新しました',
+    team_show_details:'業績・プロフィールを表示', team_hide_details:'詳細を閉じる',
+    team_move_up:'上に移動', team_move_down:'下に移動',
     dir_eyebrow:'メンバー一覧', dir_heading:'メンバー',
     dir_lede:'プロジェクトが管理する全員のリストです。ここで人を追加すると、researchmapのプロフィールから業績を自動取得します。',
     add_person:'+ メンバーを追加', edit_person_title:'メンバーを編集', add_person_title:'メンバーを追加',
@@ -529,7 +536,7 @@ const FIRESTORE_COLLECTION = 'pluriverse_data';
 // It's meant to keep casual visitors / search engines out, not to protect against
 // a determined person. For real per-person security, Firebase Authentication with
 // individual accounts would be needed instead. ----
-const SITE_PASSWORD = 'Pluriverse2026';
+const SITE_PASSWORD = 'CHANGE_ME';
 
 let usingClaudeStorage = false;
 let firebaseReady = false;
@@ -1131,7 +1138,6 @@ function renderInternalNav(){
     {k:'feed', label:t('tab_feed')},
     {k:'team', label:t('tab_team')},
     {k:'themes', label:t('tab_themes')},
-    {k:'authors', label:t('tab_authors')},
     {k:'blog', label:t('tab_blog')},
     {k:'settings', label:t('tab_settings')},
   ];
@@ -1840,29 +1846,86 @@ function renderFeed(){
 
 /* ============================= RENDER: TEAM COORDINATION ============================= */
 
+function personLinksAndPubsHtml(author){
+  ensurePubsLoaded(author);
+  const cache = STATE.pubCache[author.id] || {loading:true, items:[]};
+  const manual = STATE.manualPubs.filter(p=>p.authorId===author.id);
+  const allPubs = [...(cache.items||[]), ...manual].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+
+  const links = [];
+  if(author.researchmapSlug) links.push(`<a href="https://researchmap.jp/${author.researchmapSlug}" target="_blank" rel="noopener">researchmap ↗</a>`);
+  if(author.kakenUrl) links.push(`<a href="${author.kakenUrl}" target="_blank" rel="noopener">KAKEN / nrid ↗</a>`);
+  if(author.externalUrl) links.push(`<a href="${author.externalUrl}" target="_blank" rel="noopener">profile ↗</a>`);
+  if(author.researchgateUrl) links.push(`<a href="${author.researchgateUrl}" target="_blank" rel="noopener">ResearchGate ↗</a>`);
+  if(author.contact) links.push(escapeHtml(author.contact));
+
+  let pubBlock = '';
+  if(cache.loading){
+    pubBlock = `<div class="pub-empty"><span class="loader-dot"></span> ${t('pubs_loading')}</div>`;
+  } else if(cache.noSource){
+    pubBlock = `<div class="pub-empty">${t('pubs_no_source')}</div>`;
+  } else if(allPubs.length===0 && !cache.error){
+    pubBlock = `<div class="pub-empty">${t('pubs_none')}</div>`;
+  } else {
+    if(cache.error){
+      pubBlock += `<div class="fetch-note">${t('pubs_error', cache.error)}</div>`;
+    }
+    pubBlock += `<div class="pub-list">` + allPubs.slice(0,8).map(p=>`
+      <div class="pub">
+        <div class="ptitle">${p.link ? `<a href="${p.link}" target="_blank" rel="noopener">${escapeHtml(p.title)}</a>` : escapeHtml(p.title)}</div>
+        <div class="pmeta">${[p.journal, p.date].filter(Boolean).join(' · ')}${p.source==='manual' ? ' · '+t('added_manually') : ''}</div>
+      </div>`).join('') + `</div>`;
+  }
+
+  return `
+    <div class="top" style="margin-top:2px;">
+      <div class="link-row">${links.join(' &nbsp;·&nbsp; ') || `<span class="fetch-note">${t('no_profile_links')}</span>`}</div>
+      <button class="refresh-btn ${cache.loading?'loading':''}" data-refresh="${author.id}">${cache.loading? t('refreshing') : t('refresh')}</button>
+    </div>
+    ${pubBlock}`;
+}
+
 function initials(name){
   return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 }
 
 function renderTeam(){
-  const cards = STATE.authors.map(a=>{
+  const cards = STATE.authors.map((a, i)=>{
     const wgs = (a.wgIds||[]).map(id=>byId(STATE.wgs,id)).filter(Boolean);
     const themes = (a.themeIds||[]).map(id=>byId(STATE.themes,id)).filter(Boolean);
     const avatarColor = wgs[0] ? wgs[0].color : 'var(--ink-faint)';
+    const expanded = !!STATE.expandedAuthors[a.id];
+    const avatar = a.photoUrl
+      ? `<img src="${a.photoUrl}" alt="${escapeHtml(a.name)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; flex:none;" />`
+      : `<div class="avatar" style="background:${avatarColor}">${initials(a.name)}</div>`;
+    const isFirst = i === 0, isLast = i === STATE.authors.length - 1;
     return `
       <div class="team-card" data-team="${a.id}">
         <div class="top">
-          <div class="avatar" style="background:${avatarColor}">${initials(a.name)}</div>
-          <div>
-            <div class="name">${a.name}</div>
-            <div class="role-line">${[a.role, a.affiliation].filter(Boolean).join(' · ')}</div>
+          ${avatar}
+          <div style="flex:1;">
+            <div class="name">${escapeHtml(a.name)}</div>
+            <div class="role-line">${escapeHtml([a.role, a.affiliation].filter(Boolean).join(' · '))}</div>
+          </div>
+          <div class="reorder-btns">
+            <button class="icon-btn" data-move-up="${a.id}" ${isFirst?'disabled':''} title="${t('team_move_up')}">▲</button>
+            <button class="icon-btn" data-move-down="${a.id}" ${isLast?'disabled':''} title="${t('team_move_down')}">▼</button>
           </div>
         </div>
         <div class="chips">
           ${wgs.map(wg=>`<span class="chip"><span class="sw" style="background:${wg.color}"></span>${wg.code}</span>`).join(' ')}
           ${themes.map(th=>`<span class="chip"><span class="sw" style="background:${th.color}"></span>${L(th,'name')}</span>`).join(' ')}
+          ${a.researchmapSlug ? `<span class="tag-mini" style="border-color:var(--moss); color:var(--moss-deep);">${t('autopull_on')}</span>` : ''}
         </div>
         <textarea class="status-box" placeholder="${t('status_placeholder')}" data-status="${a.id}">${a.status||''}</textarea>
+        <div style="display:flex; gap:14px; margin-top:10px;">
+          <button class="icon-btn" data-toggle-person="${a.id}">${expanded ? t('team_hide_details') : t('team_show_details')}</button>
+          <button class="icon-btn" data-edit-author="${a.id}">${t('edit')}</button>
+        </div>
+        ${expanded ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+          ${a.bio ? `<p class="fetch-note" style="margin-bottom:8px;">${escapeHtml(a.bio)}</p>` : ''}
+          ${personLinksAndPubsHtml(a)}
+        </div>` : ''}
       </div>`;
   }).join('');
 
@@ -1870,8 +1933,33 @@ function renderTeam(){
     <p class="eyebrow">${t('team_eyebrow')}</p>
     <h2 class="section-title">${t('team_heading')}</h2>
     <p class="lede">${t('team_lede')}</p>
+    <div style="margin:16px 0;"><button class="btn" id="add-author-btn">${t('add_person')}</button></div>
+    ${STATE.showAuthorForm ? authorFormHtml(STATE.editingAuthorId ? byId(STATE.authors, STATE.editingAuthorId) : null) : ''}
     <div class="team-grid">${cards}</div>
   `;
+
+  document.querySelectorAll('[data-move-up]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const idx = STATE.authors.findIndex(a=>a.id===b.dataset.moveUp);
+      if(idx <= 0) return;
+      [STATE.authors[idx-1], STATE.authors[idx]] = [STATE.authors[idx], STATE.authors[idx-1]];
+      await storeSet('pluriverse:authors', STATE.authors);
+      render();
+    });
+  });
+  document.querySelectorAll('[data-move-down]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const idx = STATE.authors.findIndex(a=>a.id===b.dataset.moveDown);
+      if(idx === -1 || idx >= STATE.authors.length-1) return;
+      [STATE.authors[idx+1], STATE.authors[idx]] = [STATE.authors[idx], STATE.authors[idx+1]];
+      await storeSet('pluriverse:authors', STATE.authors);
+      render();
+    });
+  });
+
+  document.getElementById('add-author-btn').addEventListener('click', ()=>{
+    STATE.showAuthorForm=true; STATE.editingAuthorId=null; render();
+  });
 
   document.querySelectorAll('[data-status]').forEach(ta=>{
     ta.addEventListener('blur', async ()=>{
@@ -1882,6 +1970,71 @@ function renderTeam(){
         showToast(t('status_updated'));
       }
     });
+  });
+
+  document.querySelectorAll('[data-toggle-person]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const id = b.dataset.togglePerson;
+      STATE.expandedAuthors[id] = !STATE.expandedAuthors[id];
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-edit-author]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      STATE.showAuthorForm=true; STATE.editingAuthorId=b.dataset.editAuthor; render();
+    });
+  });
+
+  document.querySelectorAll('[data-refresh]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const author = byId(STATE.authors, b.dataset.refresh);
+      loadPubsForAuthor(author, true);
+    });
+  });
+
+  const cancelBtn = document.getElementById('f-cancel');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ STATE.showAuthorForm=false; STATE.editingAuthorId=null; render(); });
+
+  const saveBtn = document.getElementById('f-save');
+  if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+    const wgIds = Array.from(document.querySelectorAll('.f-wg:checked')).map(c=>c.value);
+    const themeIds = Array.from(document.querySelectorAll('.f-theme:checked')).map(c=>c.value);
+    const payload = {
+      name: document.getElementById('f-name').value.trim(),
+      role: document.getElementById('f-role').value,
+      affiliation: document.getElementById('f-affil').value.trim(),
+      researchmapSlug: document.getElementById('f-rmap').value.trim(),
+      kakenUrl: document.getElementById('f-kaken').value.trim(),
+      externalUrl: document.getElementById('f-ext').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+      bio: document.getElementById('f-bio').value.trim(),
+      contact: document.getElementById('f-contact').value.trim(),
+      photoUrl: document.getElementById('f-photo').value.trim(),
+      researchgateUrl: document.getElementById('f-researchgate').value.trim(),
+      wgIds, themeIds,
+    };
+    if(!payload.name){ showToast(t('name_required')); return; }
+    if(STATE.editingAuthorId){
+      const existing = byId(STATE.authors, STATE.editingAuthorId);
+      Object.assign(existing, payload);
+      delete STATE.pubCache[existing.id];
+    } else {
+      payload.id = 'a-' + payload.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.random().toString(36).slice(2,6);
+      payload.status = '';
+      STATE.authors.push(payload);
+    }
+    await storeSet('pluriverse:authors', STATE.authors);
+    STATE.showAuthorForm=false; STATE.editingAuthorId=null;
+    render(); showToast(t('saved'));
+  });
+
+  const deleteBtn = document.getElementById('f-delete');
+  if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+    STATE.authors = STATE.authors.filter(a=>a.id!==STATE.editingAuthorId);
+    await storeSet('pluriverse:authors', STATE.authors);
+    STATE.showAuthorForm=false; STATE.editingAuthorId=null;
+    render(); showToast(t('removed'));
   });
 }
 
@@ -2059,111 +2212,6 @@ function authorFormHtml(existing){
   `;
 }
 
-function renderAuthors(){
-  const rows = STATE.authors.map(a=>{
-    const wgChips = (a.wgIds||[]).map(id=>{ const wg=byId(STATE.wgs,id); return wg?`<span class="tag-mini">${wg.code}</span>`:''; }).join('');
-    const themeChips = (a.themeIds||[]).map(id=>{ const th=byId(STATE.themes,id); return th?`<span class="tag-mini">${L(th,'name')}</span>`:''; }).join('');
-    const expanded = !!STATE.expandedAuthors[a.id];
-    const mainRow = `
-      <tr class="author-row" data-author-row="${a.id}">
-        <td><span class="row-toggle">${expanded ? '−' : '+'}</span> <strong>${a.name}</strong><br><span class="fetch-note">${a.affiliation||''}</span></td>
-        <td>${a.role}</td>
-        <td>${wgChips}</td>
-        <td>${themeChips}</td>
-        <td>${a.researchmapSlug ? `<span class="tag-mini" style="border-color:var(--moss); color:var(--moss-deep);">${t('autopull_on')}</span>` : `<span class="fetch-note">${t('no_source')}</span>`}</td>
-        <td><button class="icon-btn" data-edit-author="${a.id}">${t('edit')}</button></td>
-      </tr>`;
-    const detailRow = expanded ? `
-      <tr class="author-detail-row">
-        <td colspan="6">${renderAuthorCard(a)}</td>
-      </tr>` : '';
-    return mainRow + detailRow;
-  }).join('');
-
-  document.getElementById('app').innerHTML = `
-    <p class="eyebrow">${t('dir_eyebrow')}</p>
-    <h2 class="section-title">${t('dir_heading')}</h2>
-    <p class="lede">${t('dir_lede')}</p>
-    <div style="margin:16px 0;">
-      <button class="btn" id="add-author-btn">${t('add_person')}</button>
-    </div>
-    ${STATE.showAuthorForm ? authorFormHtml(STATE.editingAuthorId ? byId(STATE.authors, STATE.editingAuthorId) : null) : ''}
-    <table class="authors-table">
-      <thead><tr><th>${t('th_name')}</th><th>${t('th_role')}</th><th>${t('th_wgs')}</th><th>${t('th_themes')}</th><th>${t('th_source')}</th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
-
-  const addBtn = document.getElementById('add-author-btn');
-  addBtn.addEventListener('click', ()=>{ STATE.showAuthorForm=true; STATE.editingAuthorId=null; render(); });
-
-  document.querySelectorAll('.author-row').forEach(tr=>{
-    tr.addEventListener('click', ()=>{
-      const id = tr.dataset.authorRow;
-      STATE.expandedAuthors[id] = !STATE.expandedAuthors[id];
-      render();
-    });
-  });
-
-  document.querySelectorAll('[data-edit-author]').forEach(b=>{
-    b.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      STATE.showAuthorForm=true; STATE.editingAuthorId=b.dataset.editAuthor; render();
-    });
-  });
-
-  document.querySelectorAll('[data-refresh]').forEach(b=>{
-    b.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const author = byId(STATE.authors, b.dataset.refresh);
-      loadPubsForAuthor(author, true);
-    });
-  });
-
-  const cancelBtn = document.getElementById('f-cancel');
-  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ STATE.showAuthorForm=false; STATE.editingAuthorId=null; render(); });
-
-  const saveBtn = document.getElementById('f-save');
-  if(saveBtn) saveBtn.addEventListener('click', async ()=>{
-    const wgIds = Array.from(document.querySelectorAll('.f-wg:checked')).map(c=>c.value);
-    const themeIds = Array.from(document.querySelectorAll('.f-theme:checked')).map(c=>c.value);
-    const payload = {
-      name: document.getElementById('f-name').value.trim(),
-      role: document.getElementById('f-role').value,
-      affiliation: document.getElementById('f-affil').value.trim(),
-      researchmapSlug: document.getElementById('f-rmap').value.trim(),
-      kakenUrl: document.getElementById('f-kaken').value.trim(),
-      externalUrl: document.getElementById('f-ext').value.trim(),
-      notes: document.getElementById('f-notes').value.trim(),
-      bio: document.getElementById('f-bio').value.trim(),
-      contact: document.getElementById('f-contact').value.trim(),
-      photoUrl: document.getElementById('f-photo').value.trim(),
-      researchgateUrl: document.getElementById('f-researchgate').value.trim(),
-      wgIds, themeIds,
-    };
-    if(!payload.name){ showToast(t('name_required')); return; }
-    if(STATE.editingAuthorId){
-      const existing = byId(STATE.authors, STATE.editingAuthorId);
-      Object.assign(existing, payload);
-      delete STATE.pubCache[existing.id];
-    } else {
-      payload.id = 'a-' + payload.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.random().toString(36).slice(2,6);
-      payload.status = '';
-      STATE.authors.push(payload);
-    }
-    await storeSet('pluriverse:authors', STATE.authors);
-    STATE.showAuthorForm=false; STATE.editingAuthorId=null;
-    render(); showToast(t('saved'));
-  });
-
-  const deleteBtn = document.getElementById('f-delete');
-  if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
-    STATE.authors = STATE.authors.filter(a=>a.id!==STATE.editingAuthorId);
-    await storeSet('pluriverse:authors', STATE.authors);
-    STATE.showAuthorForm=false; STATE.editingAuthorId=null;
-    render(); showToast(t('removed'));
-  });
-}
 
 /* ============================= RENDER: SETTINGS ============================= */
 
@@ -2240,7 +2288,6 @@ function render(){
   else if(v.name==='team') renderTeam();
   else if(v.name==='themes') renderThemes();
   else if(v.name==='theme') renderThemeDetail(v.param);
-  else if(v.name==='authors') renderAuthors();
   else if(v.name==='blog') renderBlogAdmin();
   else if(v.name==='settings') renderSettings();
   else renderOverview();
