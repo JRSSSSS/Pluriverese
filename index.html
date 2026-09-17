@@ -100,6 +100,9 @@
   .overview-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:36px; align-items:start;}
   @media (max-width:880px){.overview-grid{grid-template-columns:1fr;}}
   .diagram-wrap{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px; box-shadow:var(--shadow);}
+  .pub-figure{margin:16px 0 22px; max-width:680px;}
+  .pub-figure img{width:100%; height:auto; border-radius:10px; border:1px solid var(--line); display:block;}
+  .pub-figure figcaption{font-size:12px; color:var(--ink-faint); margin-top:8px; font-style:italic; line-height:1.5;}
   .petal{cursor:pointer;}
   .petal circle.ring{fill:none; stroke-width:1; transition:stroke-width 0.15s, r 0.15s;}
   .petal:hover circle.ring{stroke-width:2.5;}
@@ -307,7 +310,11 @@ const STRINGS = {
   en:{
     tab_overview:'Overview', tab_ideas:'Key Ideas', tab_cases:'Case Inputs', tab_feed:'Research Feed', tab_team:'Team',
     tab_themes:'Themes', tab_authors:'Authors', tab_blog:'Blog', tab_settings:'Settings', logout:'Log out',
-    pub_tab_home:'Home', pub_tab_team:'Team', pub_tab_blog:'Blog', pub_tab_login:'Team Login',
+    pub_tab_home:'Home', pub_tab_team:'Team', pub_tab_blog:'Blog', pub_tab_contact:'Contact', pub_tab_login:'Team Login',
+    pub_contact_eyebrow:'Get in touch', pub_contact_heading:'Contact', pub_contact_empty:'Contact details coming soon.',
+    settings_contact_h:'Public contact info', settings_contact_p:'Shown on the public Contact page \u2014 visible to anyone, no password needed.',
+    settings_contact_email:'Contact email', settings_contact_info:'Additional info (English)', settings_contact_info_ja:'Additional info (Japanese)',
+    settings_contact_info_ph:'Mailing address, phone, or anything else you want visitors to see',
     pub_home_eyebrow:'Pluriversal Land Use', pub_home_diagram_note:'The project\u2019s theory of change \u2014 how international trends, institutional gaps, local practices, and narratives interact to shape agricultural and forest land use.',
     pub_team_eyebrow:'The Team', pub_team_heading:'Team', pub_team_lede:'The people working on this project.',
     pub_blog_eyebrow:'From the project', pub_blog_heading:'Blog', pub_blog_lede:'Updates and reflections from the team.',
@@ -361,6 +368,9 @@ const STRINGS = {
     add_person:'+ Add person', edit_person_title:'Edit person', add_person_title:'Add person',
     f_name:'Name', f_role:'Role', f_affil:'Affiliation', f_rmap:'researchmap slug', f_rmap_hint:'(from researchmap.jp/<slug>)',
     f_kaken:'KAKEN / nrid URL', f_ext:'Other profile URL', f_wgs:'Working groups', f_themes:'Themes', f_notes:'Notes',
+    f_bio:'Public bio', f_bio_hint:'(shown on the public Team page)', f_bio_ph:'A sentence or two about this person',
+    f_contact:'Contact info', f_contact_ph:'Email or other contact (shown publicly)',
+    f_photo:'Photo URL', f_photo_hint:'(a link to an image)', f_researchgate:'ResearchGate URL',
     save_changes:'Save changes', remove_person:'Remove person', name_required:'Name is required', saved:'Saved', removed:'Removed',
     th_name:'Name', th_role:'Role', th_wgs:'WGs', th_themes:'Themes', th_source:'Source', autopull_on:'auto-pull on', no_source:'no source',
     settings_eyebrow:'Configuration', settings_heading:'Settings',
@@ -392,7 +402,11 @@ const STRINGS = {
   ja:{
     tab_overview:'概要', tab_ideas:'キーアイデア', tab_cases:'事例入力', tab_feed:'研究フィード', tab_team:'チーム',
     tab_themes:'テーマ', tab_authors:'メンバー一覧', tab_blog:'ブログ', tab_settings:'設定', logout:'ログアウト',
-    pub_tab_home:'ホーム', pub_tab_team:'チーム', pub_tab_blog:'ブログ', pub_tab_login:'チームログイン',
+    pub_tab_home:'ホーム', pub_tab_team:'チーム', pub_tab_blog:'ブログ', pub_tab_contact:'お問い合わせ', pub_tab_login:'チームログイン',
+    pub_contact_eyebrow:'お問い合わせ', pub_contact_heading:'お問い合わせ', pub_contact_empty:'連絡先情報は準備中です。',
+    settings_contact_h:'公開用の連絡先情報', settings_contact_p:'公開の「お問い合わせ」ページに表示されます——パスワードなしで誰でも閲覧できます。',
+    settings_contact_email:'連絡先メールアドレス', settings_contact_info:'追加情報（英語）', settings_contact_info_ja:'追加情報（日本語）',
+    settings_contact_info_ph:'住所、電話番号、その他訪問者に見せたい情報',
     pub_home_eyebrow:'プルリバーサル・ランドユース', pub_home_diagram_note:'プロジェクトのセオリー・オブ・チェンジ——国際的な動向、既存制度の間隙、地域の実践、ナラティブが互いに作用しながら、農地・森林の土地利用をどう形づくるかを示す。',
     pub_team_eyebrow:'チーム', pub_team_heading:'チーム', pub_team_lede:'このプロジェクトに関わるメンバーです。',
     pub_blog_eyebrow:'プロジェクトより', pub_blog_heading:'ブログ', pub_blog_lede:'チームからの最新情報や振り返りです。',
@@ -446,6 +460,9 @@ const STRINGS = {
     add_person:'+ メンバーを追加', edit_person_title:'メンバーを編集', add_person_title:'メンバーを追加',
     f_name:'氏名', f_role:'役割', f_affil:'所属', f_rmap:'researchmap ID', f_rmap_hint:'（researchmap.jp/<ID> の <ID> 部分）',
     f_kaken:'KAKEN / nrid URL', f_ext:'その他プロフィールURL', f_wgs:'ワーキンググループ', f_themes:'テーマ', f_notes:'メモ',
+    f_bio:'公開プロフィール', f_bio_hint:'（公開チームページに表示されます）', f_bio_ph:'この人物についての一言紹介',
+    f_contact:'連絡先', f_contact_ph:'メールアドレスなど（公開されます）',
+    f_photo:'写真URL', f_photo_hint:'（画像へのリンク）', f_researchgate:'ResearchGate URL',
     save_changes:'変更を保存', remove_person:'メンバーを削除', name_required:'氏名を入力してください', saved:'保存しました', removed:'削除しました',
     th_name:'氏名', th_role:'役割', th_wgs:'WG', th_themes:'テーマ', th_source:'データ元', autopull_on:'自動取得 有効', no_source:'データ元なし',
     settings_eyebrow:'設定', settings_heading:'設定',
@@ -512,7 +529,7 @@ const FIRESTORE_COLLECTION = 'pluriverse_data';
 // It's meant to keep casual visitors / search engines out, not to protect against
 // a determined person. For real per-person security, Firebase Authentication with
 // individual accounts would be needed instead. ----
-const SITE_PASSWORD = 'Pluriverse2026';
+const SITE_PASSWORD = 'CHANGE_ME';
 
 let usingClaudeStorage = false;
 let firebaseReady = false;
@@ -601,7 +618,9 @@ const DEFAULT_META = {
   subtitle:'Exploring Institutions, Values and Worldviews',
   subtitleJa:'制度・価値観・世界観を探る',
   description:'A project theory of change: how international trends, institutional gaps, local practices, and narratives interact to shape changes in agricultural and forest land use.',
-  descriptionJa:'プロジェクトのセオリー・オブ・チェンジ：国際的な動向、既存制度の間隙、地域の実践、ナラティブが互いに作用しながら、農地・森林の土地利用の変化をどう形づくるかを示す。'
+  descriptionJa:'プロジェクトのセオリー・オブ・チェンジ：国際的な動向、既存制度の間隙、地域の実践、ナラティブが互いに作用しながら、農地・森林の土地利用の変化をどう形づくるかを示す。',
+  contactEmail:'',
+  contactInfo:'', contactInfoJa:'',
 };
 
 const DEFAULT_WGS = [
@@ -1076,8 +1095,8 @@ function renderLangToggle(){
 
 function updateBrandTitle(){
   document.getElementById('brand-title').innerHTML = STATE.lang==='ja'
-    ? `プルリバーサル<i>・ランドユース</i>`
-    : `Pluriversal <i>Land Use</i>`;
+    ? `プルリバース<i>・プロジェクト</i>`
+    : `Pluriverse <i>Project</i>`;
 }
 
 function renderTabs(){
@@ -1090,6 +1109,7 @@ function renderPublicNav(){
     {k:'pub-home', label:t('pub_tab_home')},
     {k:'pub-team', label:t('pub_tab_team')},
     {k:'pub-blog', label:t('pub_tab_blog')},
+    {k:'pub-contact', label:t('pub_tab_contact')},
   ];
   const el = document.getElementById('tabs');
   el.innerHTML = tabs.map(tb=>{
@@ -1997,7 +2017,7 @@ function renderThemeDetail(themeId){
 /* ============================= RENDER: AUTHORS ============================= */
 
 function authorFormHtml(existing){
-  const a = existing || {name:'',affiliation:'',role:'Collaborator',researchmapSlug:'',kakenUrl:'',externalUrl:'',wgIds:[],themeIds:[],notes:''};
+  const a = existing || {name:'',affiliation:'',role:'Collaborator',researchmapSlug:'',kakenUrl:'',externalUrl:'',wgIds:[],themeIds:[],notes:'',bio:'',contact:'',photoUrl:'',researchgateUrl:''};
   return `
     <div class="form-panel">
       <p class="eyebrow">${existing ? t('edit_person_title') : t('add_person_title')}</p>
@@ -2025,6 +2045,10 @@ function authorFormHtml(existing){
           `).join('')}</div>
         </div>
         <div class="field full"><label>${t('f_notes')}</label><input id="f-notes" value="${a.notes}" placeholder="optional" /></div>
+        <div class="field full"><label>${t('f_bio')} <span class="fetch-note">${t('f_bio_hint')}</span></label><textarea id="f-bio" rows="3" placeholder="${t('f_bio_ph')}">${escapeHtml(a.bio||'')}</textarea></div>
+        <div class="field"><label>${t('f_contact')}</label><input id="f-contact" value="${a.contact||''}" placeholder="${t('f_contact_ph')}" /></div>
+        <div class="field"><label>${t('f_photo')} <span class="fetch-note">${t('f_photo_hint')}</span></label><input id="f-photo" value="${a.photoUrl||''}" placeholder="https://..." /></div>
+        <div class="field full"><label>${t('f_researchgate')}</label><input id="f-researchgate" value="${a.researchgateUrl||''}" placeholder="https://www.researchgate.net/profile/..." /></div>
       </div>
       <div class="form-actions">
         <button class="btn" id="f-save">${existing ? t('save_changes') : t('add_person')}</button>
@@ -2111,6 +2135,10 @@ function renderAuthors(){
       kakenUrl: document.getElementById('f-kaken').value.trim(),
       externalUrl: document.getElementById('f-ext').value.trim(),
       notes: document.getElementById('f-notes').value.trim(),
+      bio: document.getElementById('f-bio').value.trim(),
+      contact: document.getElementById('f-contact').value.trim(),
+      photoUrl: document.getElementById('f-photo').value.trim(),
+      researchgateUrl: document.getElementById('f-researchgate').value.trim(),
       wgIds, themeIds,
     };
     if(!payload.name){ showToast(t('name_required')); return; }
@@ -2144,6 +2172,16 @@ function renderSettings(){
     <p class="eyebrow">${t('settings_eyebrow')}</p>
     <h2 class="section-title">${t('settings_heading')}</h2>
     <div class="settings-block">
+      <h3>${t('settings_contact_h')}</h3>
+      <p>${t('settings_contact_p')}</p>
+      <div class="form-grid" style="margin-top:10px;">
+        <div class="field"><label>${t('settings_contact_email')}</label><input id="settings-contact-email" value="${escapeHtml(STATE.meta.contactEmail||'')}" placeholder="team@example.org" /></div>
+        <div class="field full"><label>${t('settings_contact_info')}</label><textarea id="settings-contact-info" rows="3" placeholder="${t('settings_contact_info_ph')}">${escapeHtml(STATE.meta.contactInfo||'')}</textarea></div>
+        <div class="field full"><label>${t('settings_contact_info_ja')}</label><textarea id="settings-contact-info-ja" rows="3" placeholder="${t('settings_contact_info_ph')}">${escapeHtml(STATE.meta.contactInfoJa||'')}</textarea></div>
+      </div>
+      <div class="form-actions"><button class="btn small" id="settings-contact-save">${t('save')}</button></div>
+    </div>
+    <div class="settings-block" style="margin-top:16px;">
       <h3>${t('settings_autopull_h')}</h3>
       <p>${t('settings_autopull_p1')}</p>
       <p>${t('settings_autopull_p2')}</p>
@@ -2158,6 +2196,13 @@ function renderSettings(){
       <button class="btn ghost small" id="reset-cache">${t('clear_cache')}</button>
     </div>
   `;
+  document.getElementById('settings-contact-save').addEventListener('click', async ()=>{
+    STATE.meta.contactEmail = document.getElementById('settings-contact-email').value.trim();
+    STATE.meta.contactInfo = document.getElementById('settings-contact-info').value.trim();
+    STATE.meta.contactInfoJa = document.getElementById('settings-contact-info-ja').value.trim();
+    await storeSet('pluriverse:meta', STATE.meta);
+    showToast(t('saved'));
+  });
   document.getElementById('reset-cache').addEventListener('click', async ()=>{
     for(const a of STATE.authors){
       try{ await storeDelete('pluriverse:cache:'+a.id, true); }catch(e){}
@@ -2181,6 +2226,7 @@ function render(){
     if(v.name==='pub-home') renderPublicHome();
     else if(v.name==='pub-team') renderPublicTeam();
     else if(v.name==='pub-blog') renderPublicBlog();
+    else if(v.name==='pub-contact') renderPublicContact();
     else if(v.name==='pub-post') renderPublicPost(v.param);
     else if(v.name==='login') renderLoginView();
     else renderPublicHome();
@@ -2208,26 +2254,95 @@ document.getElementById('lang-toggle').addEventListener('click', (e)=>{
 /* ============================= PUBLIC SIDE ============================= */
 
 function renderPublicHome(){
+  const h3 = 'font-family:\'Fraunces\',serif; font-size:17px; font-weight:600; margin:28px 0 8px;';
+  const h4 = 'font-family:\'Fraunces\',serif; font-size:15px; font-weight:600; margin:18px 0 6px;';
+
+  if(STATE.lang === 'ja'){
+    document.getElementById('app').innerHTML = `
+      <p class="eyebrow">研究プログラム</p>
+      <p class="lede" style="font-weight:600; margin-bottom:2px;">土地利用革新のための知の集約プログラム</p>
+      <h2 class="section-title" style="margin-top:6px;">多元世界プロジェクト</h2>
+      <p class="lede" style="font-style:italic;">制度、価値、世界観の探究を通じた多元世界的土地利用の探求</p>
+
+      <h3 style="${h3}">プロジェクト概要</h3>
+      <p class="lede">経済効率優先のパラダイムは、自然と共生する地域実践を周縁化してきました。本プロジェクトは、農地や森林に多様な価値観が共存する「多元世界（Pluriverse）」を目指します。「関係価値」や環境人文学の知を現場実践の支援に投じ、そこでのフィードバックを通じて理論を磨き上げます。国内外の多角的なフィールド研究を軸に、ネイチャーポジティブな未来に向けた新たな土地利用の基盤を構築します。</p>
+
+      <h3 style="${h3}">土地利用の「単一世界」から「多元世界（Pluriverse）」へ</h3>
+      <p class="lede">現代の土地利用は、経済効率を最優先し自然を資源と見なす人間中心主義のパラダイムに支配されています。その結果、土地が持つ多様な価値は制度的な縦割りに封じ込められ、自然と共生する地域実践は"ユニークだが非効率な個別事例"として周縁化されてきました。本プロジェクトでは、農地や森林において多様な価値観が共存する「多元世界」の実現を目指し、周縁化された実践を社会の主流へと押し上げることを主眼に置きます（写真1、2）。</p>
+      <figure class="pub-figure"><img src="images/stork-nest.jpg" alt="兵庫県豊岡市の田園地帯にあるコウノトリ人工巣塔" /><figcaption>写真1：兵庫県豊岡市の田園地帯にあるコウノトリ人工巣塔</figcaption></figure>
+      <figure class="pub-figure"><img src="images/forest-kindergarten.jpg" alt="森のようちえんの活動" /><figcaption>写真2：都市近郊里山林における森のようちえんの活動——急斜面や倒木も巧みに利用する子どもたち</figcaption></figure>
+
+      <h3 style="${h3}">「関係価値」を理論的支柱とした正当性の構築</h3>
+      <p class="lede">核となる概念は、人間と自然の相互的な繋がりを重視する「関係価値（Relational Values）」です。環境人文学や生物多様性保全に関する学術的議論を、現場の実践を支え、その正当性を担保するための「盾」として活用します。理論と現場を往復することで、経済効率という単一の尺度を乗り越える新たな知の基盤を構築します。</p>
+
+      <h3 style="${h3}">国内外のフィールドを結ぶ超学際的な活動体制</h3>
+      <p class="lede">活動体制は、6つのワーキンググループ（WG）と、それらを横断的に統合するプラットフォームで構成されます（図1）。京都、兵庫、徳島、愛媛、長野など国内各地でのTD研究に加え、海外の類似事例も収集し、国際的な実務者ネットワークの構築にも取り組みます。こうした多角的な取り組みを通じ、ネイチャーポジティブな未来に向けた、新たな土地利用の社会実装を目指します。</p>
+      <figure class="pub-figure"><img src="images/wg-diagram.png" alt="プロジェクトの活動体制" /><figcaption>図1：プロジェクトの活動体制</figcaption></figure>
+
+      <h3 style="${h3}">研究の進捗状況</h3>
+      <h4 style="${h4}">これまでにわかったこと</h4>
+      <p class="lede">PR期間の研究から、現代の「単一世界」パラダイムが自然共生的な地域実践を捉えきれず、周縁化させている実態が浮き彫りとなりました。現場の複雑さを包摂するため、核となる理論は「マルチスピーシーズ」から、より包括的な「多元世界（Pluriverse）」へと拡張・精緻化させています。また、農地・森林・都市計画法等の制度の交錯や、IPBES等の国際的議論と現場実践との乖離が、主流化を阻む大きな障壁であることも判明しました。こうした課題に対し、実務者の視点を優先する「実践としての超学際（TD as Practice）」という本プロジェクト独自の視角が、極めて有効であることを確認できています。</p>
+
+      <h4 style="${h4}">特筆すべき事項</h4>
+      <p class="lede">2025年度の成果として、まずプロジェクトの理念を可視化した「コンセプトグラフィック」を開発しました（図2）。これは抽象的な理論を実際の景観データと結びつけ、外部発信を支える戦略的ツールとなります。組織面では、単なる事務管理を超えた「知的統合の場」を構築すべく体制を強化しました。具体的には統合プラットフォームを創設し、3ストリーム・6WGの専門知を横断的に融合させる「知の交差点」としての基盤を整備しました。学術面では、有識者を招いたワークショップや雑誌特集の刊行を通じ、プロジェクトの基盤となる思想を取りまとめています。こうした基盤構築により、次年度以降の本格的な活動開始に向けた準備が整いました。</p>
+      <figure class="pub-figure"><img src="images/concept-graphic.jpg" alt="多元世界プロジェクトコンセプトグラフィック" /><figcaption>図2：多元世界プロジェクトコンセプトグラフィック「ともに育まれる水田と用水路の風景」 © AOI Landscape design</figcaption></figure>
+    `;
+    return;
+  }
+
   document.getElementById('app').innerHTML = `
-    <p class="eyebrow">${t('pub_home_eyebrow')}</p>
-    <h2 class="section-title">${L(STATE.meta,'name')}</h2>
-    <p class="lede" style="max-width:680px;">${L(STATE.meta,'description')}</p>
-    <div class="diagram-wrap" style="margin-top:24px; max-width:720px;">${diagramSVG()}</div>
-    <p class="fetch-note" style="margin-top:12px;">${t('pub_home_diagram_note')}</p>
+    <p class="eyebrow">Research Program</p>
+    <p class="lede" style="font-weight:600; margin-bottom:2px;">Combining Knowledge for a Fundamental Innovation of Land Use Program</p>
+    <h2 class="section-title" style="margin-top:6px;">Pluriverse Project</h2>
+    <p class="lede" style="font-style:italic;">Pluriversal Land Use: Exploring Institutions, Values and Worldviews</p>
+
+    <h3 style="${h3}">Project Overview</h3>
+    <p class="lede">A paradigm that prioritizes economic efficiency has marginalized local practices that coexist with nature. This project aims for a \u2018Pluriverse\u2019 in which diverse values coexist on farmland and in forests. We bring the knowledge of \u2018relational values\u2019 and the environmental humanities to bear in support of on-the-ground practice, refining our theory through the feedback this generates. Centered on diverse field research at home and abroad, we are building a foundation for new forms of land use toward a nature-positive future.</p>
+
+    <h3 style="${h3}">From a \u201cOne World\u201d to a \u201cPluriverse\u201d in Land Use</h3>
+    <p class="lede">Contemporary land use is dominated by an anthropocentric paradigm that prioritizes economic efficiency above all else and treats nature merely as a resource. As a result, the diverse values that land holds have been sealed off within institutional silos, and local practices that coexist with nature have been marginalized as \u2018unique but inefficient individual cases.\u2019 This project aims to realize a \u2018Pluriverse\u2019 in which diverse values coexist on farmland and in forests, with a central focus on bringing marginalized practices into the mainstream of society (Photos 1, 2).</p>
+    <figure class="pub-figure"><img src="images/stork-nest.jpg" alt="An artificial stork nesting tower in Toyooka City, Hyogo Prefecture" /><figcaption>Photo 1: An artificial stork nesting tower in the farmland of Toyooka City, Hyogo Prefecture</figcaption></figure>
+    <figure class="pub-figure"><img src="images/forest-kindergarten.jpg" alt="A forest kindergarten in a peri-urban satoyama woodland" /><figcaption>Photo 2: A forest kindergarten in a peri-urban satoyama woodland \u2014 children skillfully making use of steep slopes and fallen logs</figcaption></figure>
+
+    <h3 style="${h3}">Building Legitimacy on \u201cRelational Values\u201d as a Theoretical Pillar</h3>
+    <p class="lede">Our core concept is \u2018relational values\u2019 \u2014 an emphasis on the mutual connection between people and nature. We draw on academic discourse in the environmental humanities and biodiversity conservation as a \u2018shield,\u2019 supporting on-the-ground practice and securing its legitimacy. By moving back and forth between theory and practice, we are building a new foundation of knowledge that goes beyond the single yardstick of economic efficiency.</p>
+
+    <h3 style="${h3}">A Transdisciplinary Structure Connecting Fields in Japan and Abroad</h3>
+    <p class="lede">Our activities are organized around six working groups (WGs) and a platform that integrates them across working-group lines (Figure 1). Alongside transdisciplinary (TD) research at sites across Japan \u2014 including Kyoto, Hyogo, Tokushima, Ehime, and Nagano \u2014 we are also gathering comparable cases from overseas and working to build an international network of practitioners. Through these varied efforts, we aim for the social implementation of new forms of land use toward a nature-positive future.</p>
+    <figure class="pub-figure"><img src="images/wg-diagram.png" alt="The project's organizational and activity structure" /><figcaption>Figure 1: The project's organizational and activity structure</figcaption></figure>
+
+    <h3 style="${h3}">Research Progress</h3>
+    <h4 style="${h4}">What We Have Found So Far</h4>
+    <p class="lede">Research during the PR (proposal-review) period has made clear that the contemporary \u2018one-world\u2019 paradigm fails to capture, and instead marginalizes, local practices that coexist with nature. To encompass the complexity of the field, we have expanded and refined our core theory from \u2018multispecies\u2019 to the more encompassing concept of \u2018Pluriverse.\u2019 We have also found that the overlapping jurisdictions of farmland, forestry, and urban-planning law, together with the gap between international discussions such as IPBES and on-the-ground practice, are major barriers to mainstreaming. In response to these challenges, we have confirmed that this project\u2019s own distinctive approach \u2014 \u2018Transdisciplinarity as Practice (TD as Practice),\u2019 which prioritizes practitioners\u2019 perspectives \u2014 is highly effective.</p>
+
+    <h4 style="${h4}">Notable Achievements</h4>
+    <p class="lede">Among our achievements in fiscal year 2025, we first developed a \u2018concept graphic\u2019 that visualizes the project\u2019s guiding philosophy (Figure 2). This connects abstract theory to real landscape data and serves as a strategic tool for outward communication. On the organizational side, we have strengthened our structure to build an \u2018intellectual integration hub\u2019 that goes beyond mere administrative management \u2014 specifically, by establishing an integrated platform that serves as a \u2018crossroads of knowledge,\u2019 bringing together the expertise of three streams and six working groups across their boundaries. On the academic side, we have been consolidating the ideas underlying the project through workshops with invited experts and the publication of journal special issues. This groundwork has prepared us for the full-scale start of activities from the next fiscal year onward.</p>
+    <figure class="pub-figure"><img src="images/concept-graphic.jpg" alt="Pluriverse Project concept graphic" /><figcaption>Figure 2: Pluriverse Project concept graphic \u2014 \u201cA Landscape of Rice Paddies and Irrigation Channels, Nurtured Together\u201d \u00a9 AOI Landscape design</figcaption></figure>
+
   `;
 }
 
 function renderPublicTeam(){
-  const cards = STATE.authors.map(a=>`
+  const cards = STATE.authors.map(a=>{
+    const avatar = a.photoUrl
+      ? `<img src="${a.photoUrl}" alt="${escapeHtml(a.name)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; flex:none;" />`
+      : `<div class="avatar" style="background:var(--ink-faint)">${initials(a.name)}</div>`;
+    const links = [];
+    if(a.researchgateUrl) links.push(`<a href="${a.researchgateUrl}" target="_blank" rel="noopener">ResearchGate ↗</a>`);
+    if(a.contact) links.push(escapeHtml(a.contact));
+    return `
     <div class="team-card">
       <div class="top">
-        <div class="avatar" style="background:var(--ink-faint)">${initials(a.name)}</div>
+        ${avatar}
         <div>
           <div class="name">${escapeHtml(a.name)}</div>
           <div class="role-line">${escapeHtml([a.role, a.affiliation].filter(Boolean).join(' · '))}</div>
         </div>
       </div>
-    </div>`).join('');
+      ${a.bio ? `<p class="fetch-note" style="margin-top:10px; font-size:12.5px; color:var(--ink-soft);">${escapeHtml(a.bio)}</p>` : ''}
+      ${links.length ? `<div class="link-row" style="margin-top:8px;">${links.join(' &nbsp;·&nbsp; ')}</div>` : ''}
+    </div>`;
+  }).join('');
   document.getElementById('app').innerHTML = `
     <p class="eyebrow">${t('pub_team_eyebrow')}</p>
     <h2 class="section-title">${t('pub_team_heading')}</h2>
@@ -2264,6 +2379,18 @@ function renderPublicPost(postId){
     <div class="lede" style="max-width:700px; white-space:pre-wrap;">${escapeHtml(post.body||'')}</div>
   `;
   document.getElementById('back-blog').addEventListener('click', ()=>goto('pub-blog'));
+}
+
+function renderPublicContact(){
+  const email = STATE.meta.contactEmail;
+  const info = L(STATE.meta, 'contactInfo');
+  document.getElementById('app').innerHTML = `
+    <p class="eyebrow">${t('pub_contact_eyebrow')}</p>
+    <h2 class="section-title">${t('pub_contact_heading')}</h2>
+    ${email ? `<p class="lede"><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></p>` : ''}
+    ${info ? `<p class="lede" style="white-space:pre-wrap;">${escapeHtml(info)}</p>` : ''}
+    ${!email && !info ? `<div class="empty-state">${t('pub_contact_empty')}</div>` : ''}
+  `;
 }
 
 function renderLoginView(){
