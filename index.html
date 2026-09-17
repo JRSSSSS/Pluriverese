@@ -306,7 +306,17 @@
 const STRINGS = {
   en:{
     tab_overview:'Overview', tab_ideas:'Key Ideas', tab_cases:'Case Inputs', tab_feed:'Research Feed', tab_team:'Team',
-    tab_themes:'Themes', tab_authors:'Authors', tab_settings:'Settings',
+    tab_themes:'Themes', tab_authors:'Authors', tab_blog:'Blog', tab_settings:'Settings', logout:'Log out',
+    pub_tab_home:'Home', pub_tab_team:'Team', pub_tab_blog:'Blog', pub_tab_login:'Team Login',
+    pub_home_eyebrow:'Pluriversal Land Use', pub_home_diagram_note:'The project\u2019s theory of change \u2014 how international trends, institutional gaps, local practices, and narratives interact to shape agricultural and forest land use.',
+    pub_team_eyebrow:'The Team', pub_team_heading:'Team', pub_team_lede:'The people working on this project.',
+    pub_blog_eyebrow:'From the project', pub_blog_heading:'Blog', pub_blog_lede:'Updates and reflections from the team.',
+    pub_blog_empty:'No posts yet \u2014 check back soon.', pub_blog_back:'\u2190 Back to blog',
+    blog_admin_eyebrow:'Public blog', blog_admin_heading:'Blog', blog_admin_lede:'Write here, then publish when it\u2019s ready \u2014 published posts show on the public site immediately; drafts stay internal.',
+    blog_admin_empty:'No posts yet.', blog_add_btn:'+ New post', blog_new_title:'New post', blog_edit_title:'Edit post',
+    blog_title_ph:'Post title', blog_body_ph:'Write the post…', blog_save_draft:'Save draft', blog_delete:'Delete post',
+    blog_title_required:'Add a title first', blog_published:'Published', blog_draft:'Draft',
+    blog_publish:'Publish', blog_unpublish:'Unpublish', blog_now_published:'Post is now public', blog_now_unpublished:'Post is now a draft again',
     ov_eyebrow:'Theory of change', ov_wg_heading:'Working groups — click to open',
     ov_no_lead:'no lead assigned', edit:'edit', save:'Save', cancel:'Cancel',
     diagram_team_in_dev:'team in development',
@@ -381,7 +391,17 @@ const STRINGS = {
   },
   ja:{
     tab_overview:'概要', tab_ideas:'キーアイデア', tab_cases:'事例入力', tab_feed:'研究フィード', tab_team:'チーム',
-    tab_themes:'テーマ', tab_authors:'メンバー一覧', tab_settings:'設定',
+    tab_themes:'テーマ', tab_authors:'メンバー一覧', tab_blog:'ブログ', tab_settings:'設定', logout:'ログアウト',
+    pub_tab_home:'ホーム', pub_tab_team:'チーム', pub_tab_blog:'ブログ', pub_tab_login:'チームログイン',
+    pub_home_eyebrow:'プルリバーサル・ランドユース', pub_home_diagram_note:'プロジェクトのセオリー・オブ・チェンジ——国際的な動向、既存制度の間隙、地域の実践、ナラティブが互いに作用しながら、農地・森林の土地利用をどう形づくるかを示す。',
+    pub_team_eyebrow:'チーム', pub_team_heading:'チーム', pub_team_lede:'このプロジェクトに関わるメンバーです。',
+    pub_blog_eyebrow:'プロジェクトより', pub_blog_heading:'ブログ', pub_blog_lede:'チームからの最新情報や振り返りです。',
+    pub_blog_empty:'まだ投稿はありません。またご確認ください。', pub_blog_back:'← ブログへ戻る',
+    blog_admin_eyebrow:'公開ブログ', blog_admin_heading:'ブログ', blog_admin_lede:'ここで執筆し、準備ができたら公開してください——公開済みの投稿はすぐに公開サイトに表示されます。下書きは内部にのみ残ります。',
+    blog_admin_empty:'まだ投稿はありません。', blog_add_btn:'+ 新規投稿', blog_new_title:'新規投稿', blog_edit_title:'投稿を編集',
+    blog_title_ph:'投稿タイトル', blog_body_ph:'本文を入力…', blog_save_draft:'下書きを保存', blog_delete:'投稿を削除',
+    blog_title_required:'先にタイトルを入力してください', blog_published:'公開済み', blog_draft:'下書き',
+    blog_publish:'公開する', blog_unpublish:'非公開にする', blog_now_published:'投稿を公開しました', blog_now_unpublished:'投稿を下書きに戻しました',
     ov_eyebrow:'セオリー・オブ・チェンジ', ov_wg_heading:'ワーキンググループ（クリックで詳細）',
     ov_no_lead:'リーダー未設定', edit:'編集', save:'保存', cancel:'キャンセル',
     diagram_team_in_dev:'team in development（編成中）',
@@ -698,7 +718,8 @@ let STATE = {
   lang:'en',
   view:{ name:'overview', param:null },
   meta:null, wgs:[], themes:[], authors:[], manualPubs:[], settings:{ciniiAppId:''},
-  manualSources:[], feedItems:[], caseInputs:[],
+  manualSources:[], feedItems:[], caseInputs:[], blogPosts:[],
+  showBlogForm:false, editingBlogId:null,
   pubCache:{}, // authorId -> {loading, error, items, fetchedAt}
   ideaCache:{}, // wgId -> {loading, error, items, fetchedAt}
   expandedIdeas:{}, // wgId -> bool
@@ -734,6 +755,7 @@ async function loadAll(){
   STATE.manualSources = await storeGet('pluriverse:manualSourcesByWg', []);
   STATE.feedItems = await storeGet('pluriverse:feed', []);
   STATE.caseInputs = await storeGet('pluriverse:cases', []);
+  STATE.blogPosts = await storeGet('pluriverse:blog', []);
 }
 
 /* ============================= PUBLICATION FETCH ============================= */
@@ -1037,18 +1059,13 @@ function fmtDate(ts){
 
 /* ============================= RENDER: NAV ============================= */
 
-let siteLocked = true; // guards against the language toggle (or anything else) bypassing the password gate
+let siteLocked = true; // controls whether the public or internal side of the app is shown
 
 async function setLang(lang){
   if(STATE.lang === lang) return;
   STATE.lang = lang;
   await storeSet('pluriverse:lang', lang, false);
-  if(siteLocked){
-    document.getElementById('app').innerHTML = passwordGateHtml(false);
-    wirePasswordGate();
-  } else {
-    render();
-  }
+  render();
 }
 
 function renderLangToggle(){
@@ -1057,7 +1074,36 @@ function renderLangToggle(){
   });
 }
 
+function updateBrandTitle(){
+  document.getElementById('brand-title').innerHTML = STATE.lang==='ja'
+    ? `プルリバーサル<i>・ランドユース</i>`
+    : `Pluriversal <i>Land Use</i>`;
+}
+
 function renderTabs(){
+  if(siteLocked) renderPublicNav();
+  else renderInternalNav();
+}
+
+function renderPublicNav(){
+  const tabs = [
+    {k:'pub-home', label:t('pub_tab_home')},
+    {k:'pub-team', label:t('pub_tab_team')},
+    {k:'pub-blog', label:t('pub_tab_blog')},
+  ];
+  const el = document.getElementById('tabs');
+  el.innerHTML = tabs.map(tb=>{
+    const active = STATE.view.name===tb.k || (tb.k==='pub-blog' && STATE.view.name==='pub-post');
+    return `<button data-tab="${tb.k}" class="${active?'active':''}">${tb.label}</button>`;
+  }).join('') + `<button data-tab="login" class="${STATE.view.name==='login'?'active':''}" style="margin-left:auto;">${t('pub_tab_login')}</button>`;
+  el.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=> goto(b.dataset.tab, null));
+  });
+  renderLangToggle();
+  updateBrandTitle();
+}
+
+function renderInternalNav(){
   const tabs = [
     {k:'overview', label:t('tab_overview')},
     {k:'ideas', label:t('tab_ideas')},
@@ -1066,20 +1112,29 @@ function renderTabs(){
     {k:'team', label:t('tab_team')},
     {k:'themes', label:t('tab_themes')},
     {k:'authors', label:t('tab_authors')},
+    {k:'blog', label:t('tab_blog')},
     {k:'settings', label:t('tab_settings')},
   ];
   const el = document.getElementById('tabs');
   el.innerHTML = tabs.map(tb=>{
     const active = (STATE.view.name===tb.k) || (tb.k==='overview' && STATE.view.name==='wg') || (tb.k==='themes' && STATE.view.name==='theme');
     return `<button data-tab="${tb.k}" class="${active?'active':''}">${tb.label}</button>`;
-  }).join('');
+  }).join('') + `<button data-tab="logout" style="margin-left:auto;">${t('logout')}</button>`;
   el.querySelectorAll('button').forEach(b=>{
-    b.addEventListener('click', ()=> goto(b.dataset.tab, null));
+    b.addEventListener('click', ()=>{
+      if(b.dataset.tab === 'logout') logout();
+      else goto(b.dataset.tab, null);
+    });
   });
   renderLangToggle();
-  document.getElementById('brand-title').innerHTML = STATE.lang==='ja'
-    ? `プルリバーサル<i>・ランドユース</i>`
-    : `Pluriversal <i>Land Use</i>`;
+  updateBrandTitle();
+}
+
+async function logout(){
+  siteLocked = true;
+  await storeDelete('pluriverse:passwordOk', false);
+  STATE.view = {name:'pub-home', param:null};
+  render();
 }
 
 /* ============================= RENDER: OVERVIEW + DIAGRAM ============================= */
@@ -2122,6 +2177,15 @@ function renderSettings(){
 function render(){
   renderTabs();
   const v = STATE.view;
+  if(siteLocked){
+    if(v.name==='pub-home') renderPublicHome();
+    else if(v.name==='pub-team') renderPublicTeam();
+    else if(v.name==='pub-blog') renderPublicBlog();
+    else if(v.name==='pub-post') renderPublicPost(v.param);
+    else if(v.name==='login') renderLoginView();
+    else renderPublicHome();
+    return;
+  }
   if(v.name==='overview') renderOverview();
   else if(v.name==='wg') renderWgDetail(v.param);
   else if(v.name==='ideas') renderKeyIdeas();
@@ -2131,6 +2195,7 @@ function render(){
   else if(v.name==='themes') renderThemes();
   else if(v.name==='theme') renderThemeDetail(v.param);
   else if(v.name==='authors') renderAuthors();
+  else if(v.name==='blog') renderBlogAdmin();
   else if(v.name==='settings') renderSettings();
   else renderOverview();
 }
@@ -2140,12 +2205,164 @@ document.getElementById('lang-toggle').addEventListener('click', (e)=>{
   if(btn) setLang(btn.dataset.lang);
 });
 
+/* ============================= PUBLIC SIDE ============================= */
+
+function renderPublicHome(){
+  document.getElementById('app').innerHTML = `
+    <p class="eyebrow">${t('pub_home_eyebrow')}</p>
+    <h2 class="section-title">${L(STATE.meta,'name')}</h2>
+    <p class="lede" style="max-width:680px;">${L(STATE.meta,'description')}</p>
+    <div class="diagram-wrap" style="margin-top:24px; max-width:720px;">${diagramSVG()}</div>
+    <p class="fetch-note" style="margin-top:12px;">${t('pub_home_diagram_note')}</p>
+  `;
+}
+
+function renderPublicTeam(){
+  const cards = STATE.authors.map(a=>`
+    <div class="team-card">
+      <div class="top">
+        <div class="avatar" style="background:var(--ink-faint)">${initials(a.name)}</div>
+        <div>
+          <div class="name">${escapeHtml(a.name)}</div>
+          <div class="role-line">${escapeHtml([a.role, a.affiliation].filter(Boolean).join(' · '))}</div>
+        </div>
+      </div>
+    </div>`).join('');
+  document.getElementById('app').innerHTML = `
+    <p class="eyebrow">${t('pub_team_eyebrow')}</p>
+    <h2 class="section-title">${t('pub_team_heading')}</h2>
+    <p class="lede">${t('pub_team_lede')}</p>
+    <div class="team-grid">${cards}</div>
+  `;
+}
+
+function renderPublicBlog(){
+  const posts = STATE.blogPosts.filter(p=>p.published).sort((a,b)=>(b.publishedAt||b.createdAt||0)-(a.publishedAt||a.createdAt||0));
+  document.getElementById('app').innerHTML = `
+    <p class="eyebrow">${t('pub_blog_eyebrow')}</p>
+    <h2 class="section-title">${t('pub_blog_heading')}</h2>
+    <p class="lede">${t('pub_blog_lede')}</p>
+    ${posts.length===0 ? `<div class="empty-state">${t('pub_blog_empty')}</div>` : posts.map(p=>`
+      <div class="feed-item" data-post="${p.id}" style="cursor:pointer;">
+        <div class="ftitle">${escapeHtml(p.title)}</div>
+        <div class="fnote">${escapeHtml((p.body||'').slice(0,220))}${(p.body||'').length>220?'…':''}</div>
+        <div class="fmeta"><span class="fby">${escapeHtml(p.author||'')} · ${fmtDate(p.publishedAt||p.createdAt)}</span></div>
+      </div>`).join('')}
+  `;
+  document.querySelectorAll('[data-post]').forEach(el=>{
+    el.addEventListener('click', ()=> goto('pub-post', el.dataset.post));
+  });
+}
+
+function renderPublicPost(postId){
+  const post = STATE.blogPosts.find(p=>p.id===postId && p.published);
+  if(!post){ goto('pub-blog'); return; }
+  document.getElementById('app').innerHTML = `
+    <button class="back-link" id="back-blog">${t('pub_blog_back')}</button>
+    <p class="eyebrow">${escapeHtml(post.author||'')} · ${fmtDate(post.publishedAt||post.createdAt)}</p>
+    <h2 class="section-title">${escapeHtml(post.title)}</h2>
+    <div class="lede" style="max-width:700px; white-space:pre-wrap;">${escapeHtml(post.body||'')}</div>
+  `;
+  document.getElementById('back-blog').addEventListener('click', ()=>goto('pub-blog'));
+}
+
+function renderLoginView(){
+  document.getElementById('app').innerHTML = passwordGateHtml(false);
+  wirePasswordGate();
+}
+
+/* ============================= INTERNAL: BLOG ADMIN ============================= */
+
+function blogFormHtml(existing){
+  const p = existing || {title:'', body:'', author:''};
+  return `
+    <div class="form-panel">
+      <p class="eyebrow">${existing ? t('blog_edit_title') : t('blog_new_title')}</p>
+      <div class="form-grid">
+        <div class="field full"><label>${t('blog_title_ph')}</label><input id="blog-title" value="${escapeHtml(p.title)}" placeholder="${t('blog_title_ph')}" /></div>
+        <div class="field"><label>${t('feed_name_ph')}</label><input id="blog-author" value="${escapeHtml(p.author)}" placeholder="${t('feed_name_ph')}" /></div>
+        <div class="field full"><label>${t('blog_body_ph')}</label><textarea id="blog-body" rows="8" placeholder="${t('blog_body_ph')}">${escapeHtml(p.body)}</textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" id="blog-save">${existing ? t('save_changes') : t('blog_save_draft')}</button>
+        <button class="btn ghost" id="blog-cancel">${t('cancel')}</button>
+        ${existing ? `<button class="btn ghost" id="blog-delete" style="color:var(--clay); margin-left:auto;">${t('blog_delete')}</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderBlogAdmin(){
+  const posts = [...STATE.blogPosts].sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+  document.getElementById('app').innerHTML = `
+    <p class="eyebrow">${t('blog_admin_eyebrow')}</p>
+    <h2 class="section-title">${t('blog_admin_heading')}</h2>
+    <p class="lede">${t('blog_admin_lede')}</p>
+    <div style="margin:16px 0;"><button class="btn" id="blog-add-btn">${t('blog_add_btn')}</button></div>
+    ${STATE.showBlogForm ? blogFormHtml(STATE.editingBlogId ? STATE.blogPosts.find(p=>p.id===STATE.editingBlogId) : null) : ''}
+    ${posts.length===0 ? `<div class="empty-state">${t('blog_admin_empty')}</div>` : posts.map(p=>`
+      <div class="feed-item">
+        <div class="ftitle">${escapeHtml(p.title)} ${p.published ? `<span class="tag-mini" style="border-color:var(--moss); color:var(--moss-deep);">${t('blog_published')}</span>` : `<span class="tag-mini">${t('blog_draft')}</span>`}</div>
+        <div class="fnote">${escapeHtml((p.body||'').slice(0,160))}${(p.body||'').length>160?'…':''}</div>
+        <div class="fmeta">
+          <span class="fby">${escapeHtml(p.author||'')} · ${fmtDate(p.updatedAt||p.createdAt)}</span>
+          <div class="feed-tags">
+            <button class="icon-btn" data-edit-blog="${p.id}">${t('edit')}</button>
+            <button class="icon-btn" data-toggle-publish="${p.id}">${p.published ? t('blog_unpublish') : t('blog_publish')}</button>
+          </div>
+        </div>
+      </div>`).join('')}
+  `;
+
+  document.getElementById('blog-add-btn').addEventListener('click', ()=>{ STATE.showBlogForm=true; STATE.editingBlogId=null; render(); });
+  const cancelBtn = document.getElementById('blog-cancel');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ STATE.showBlogForm=false; STATE.editingBlogId=null; render(); });
+
+  const saveBtn = document.getElementById('blog-save');
+  if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+    const title = document.getElementById('blog-title').value.trim();
+    if(!title){ showToast(t('blog_title_required')); return; }
+    const body = document.getElementById('blog-body').value.trim();
+    const author = document.getElementById('blog-author').value.trim();
+    if(STATE.editingBlogId){
+      const post = STATE.blogPosts.find(p=>p.id===STATE.editingBlogId);
+      Object.assign(post, {title, body, author, updatedAt:Date.now()});
+    } else {
+      STATE.blogPosts.push({ id:'b-'+Math.random().toString(36).slice(2,9), title, body, author, published:false, createdAt:Date.now(), updatedAt:Date.now(), publishedAt:null });
+    }
+    await storeSet('pluriverse:blog', STATE.blogPosts);
+    STATE.showBlogForm=false; STATE.editingBlogId=null;
+    render(); showToast(t('saved'));
+  });
+
+  document.querySelectorAll('[data-edit-blog]').forEach(b=>{
+    b.addEventListener('click', ()=>{ STATE.showBlogForm=true; STATE.editingBlogId=b.dataset.editBlog; render(); });
+  });
+
+  document.querySelectorAll('[data-toggle-publish]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const post = STATE.blogPosts.find(p=>p.id===b.dataset.togglePublish);
+      post.published = !post.published;
+      post.publishedAt = post.published ? Date.now() : post.publishedAt;
+      await storeSet('pluriverse:blog', STATE.blogPosts);
+      render(); showToast(post.published ? t('blog_now_published') : t('blog_now_unpublished'));
+    });
+  });
+
+  const deleteBtn = document.getElementById('blog-delete');
+  if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+    STATE.blogPosts = STATE.blogPosts.filter(p=>p.id!==STATE.editingBlogId);
+    await storeSet('pluriverse:blog', STATE.blogPosts);
+    STATE.showBlogForm=false; STATE.editingBlogId=null;
+    render(); showToast(t('removed'));
+  });
+}
+
 /* ============================= PASSWORD GATE ============================= */
 // Soft deterrent only — see the SITE_PASSWORD comment above for why.
 
 function passwordGateHtml(wrong){
   return `
-    <div style="max-width:360px; margin:100px auto 0; text-align:center;">
+    <div style="max-width:360px; margin:60px auto 0; text-align:center;">
       <p class="eyebrow">${t('pw_gate_eyebrow')}</p>
       <h2 class="section-title">${t('pw_gate_heading')}</h2>
       <p class="lede" style="margin:8px auto 20px;">${t('pw_gate_lede')}</p>
@@ -2169,7 +2386,7 @@ async function checkPassword(){
   if(val === SITE_PASSWORD){
     await storeSet('pluriverse:passwordOk', true, false); // private, per-browser
     siteLocked = false;
-    await loadAll();
+    STATE.view = {name:'overview', param:null};
     render();
   } else {
     document.getElementById('app').innerHTML = passwordGateHtml(true);
@@ -2182,13 +2399,9 @@ async function checkPassword(){
   await initStorageBackend();
   STATE.lang = await storeGet('pluriverse:lang', 'en', false);
   const alreadyUnlocked = await storeGet('pluriverse:passwordOk', false, false);
-  if(!alreadyUnlocked){
-    document.getElementById('app').innerHTML = passwordGateHtml(false);
-    wirePasswordGate();
-    return;
-  }
-  siteLocked = false;
+  siteLocked = !alreadyUnlocked;
   await loadAll();
+  STATE.view = siteLocked ? {name:'pub-home', param:null} : {name:'overview', param:null};
   render();
   if (!usingClaudeStorage && !firebaseReady) {
     showToast('No storage backend configured — nothing will be saved. See FIREBASE_CONFIG in index.html.');
