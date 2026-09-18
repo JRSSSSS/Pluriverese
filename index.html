@@ -386,6 +386,8 @@ const STRINGS = {
     settings_autopull_h:'How auto-pull works',
     settings_autopull_p1:'Each person\u2019s publications are pulled live from their researchmap profile (researchmap.jp/<slug>) when their card is opened, and cached for about 6 hours so the whole team shares one fetch. If a browser blocks the request, the profile link is always shown as a fallback.',
     settings_autopull_p2:'KAKEN (Grants-in-Aid) doesn\u2019t offer a keyless public API for project data — for now, link out to each person\u2019s KAKEN / nrid profile instead of auto-pulling grant records.',
+    settings_backup_h:'Backup', settings_backup_p:'Download everything on this site \u2014 team members, working groups, blog posts, case inputs, feed posts \u2014 as a single file. Nothing is restored automatically from it; it\u2019s a snapshot to keep somewhere safe, or to re-enter from by hand if something ever needs recovering.',
+    backup_download_btn:'Download backup (.json)', backup_downloaded:'Backup downloaded',
     settings_data_h:'Data', settings_data_p:'All working groups, themes, people, key ideas, feed posts, and manual entries are stored centrally and shared with anyone who opens this dashboard.',
     clear_cache:'Clear publication cache', cache_cleared:'Cache cleared — publications will refetch on next open.',
     settings_lang_h:'Language', settings_lang_p:'This is a first-pass EN/JA translation — please have a native speaker review and refine the Japanese, especially the Key Ideas summaries.',
@@ -483,6 +485,8 @@ const STRINGS = {
     settings_autopull_h:'自動取得の仕組み',
     settings_autopull_p1:'各メンバーの業績は、カードを開いたタイミングでresearchmapプロフィール（researchmap.jp/<ID>）からリアルタイムに取得し、約6時間キャッシュしてチーム全体で共有します。ブラウザが取得をブロックした場合は、常にプロフィールへのリンクを代替として表示します。',
     settings_autopull_p2:'KAKEN（科研費）はキー不要の公開APIを提供していないため、現時点では各メンバーのKAKEN／nridプロフィールへのリンクのみを表示し、助成情報の自動取得は行っていません。',
+    settings_backup_h:'バックアップ', settings_backup_p:'このサイト上のすべてのデータ——メンバー、ワーキンググループ、ブログ投稿、事例入力、フィード投稿——を1つのファイルとしてダウンロードします。自動的に復元されるものではなく、万一の際に手元に残しておく、または手作業で復旧する際のスナップショットです。',
+    backup_download_btn:'バックアップをダウンロード（.json）', backup_downloaded:'バックアップをダウンロードしました',
     settings_data_h:'データ', settings_data_p:'ワーキンググループ、テーマ、メンバー、キーアイデア、フィード投稿、手動登録データはすべて一元管理され、このダッシュボードを開いた全員と共有されます。',
     clear_cache:'業績キャッシュを削除', cache_cleared:'キャッシュを削除しました。次回開いたときに再取得します。',
     settings_lang_h:'言語', settings_lang_p:'これは第一版の日英対訳です。特にキーアイデアの要約は、ネイティブスピーカーによる確認・修正をおすすめします。',
@@ -2324,6 +2328,33 @@ function authorFormHtml(existing){
 
 /* ============================= RENDER: SETTINGS ============================= */
 
+function downloadFullBackup(){
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    meta: STATE.meta,
+    wgs: STATE.wgs,
+    themes: STATE.themes,
+    authors: STATE.authors,
+    blogPosts: STATE.blogPosts,
+    caseInputs: STATE.caseInputs,
+    feedItems: STATE.feedItems,
+    manualSources: STATE.manualSources,
+    manualPubs: STATE.manualPubs,
+    settings: STATE.settings,
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pluriverse-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(t('backup_downloaded'));
+}
+
 function renderSettings(){
   document.getElementById('app').innerHTML = `
     <p class="eyebrow">${t('settings_eyebrow')}</p>
@@ -2348,11 +2379,17 @@ function renderSettings(){
       <p>${t('settings_lang_p')}</p>
     </div>
     <div class="settings-block" style="margin-top:16px;">
+      <h3>${t('settings_backup_h')}</h3>
+      <p>${t('settings_backup_p')}</p>
+      <button class="btn ghost small" id="download-backup">${t('backup_download_btn')}</button>
+    </div>
+    <div class="settings-block" style="margin-top:16px;">
       <h3>${t('settings_data_h')}</h3>
       <p>${t('settings_data_p')}</p>
       <button class="btn ghost small" id="reset-cache">${t('clear_cache')}</button>
     </div>
   `;
+  document.getElementById('download-backup').addEventListener('click', downloadFullBackup);
   document.getElementById('settings-contact-save').addEventListener('click', async ()=>{
     STATE.meta.contactEmail = document.getElementById('settings-contact-email').value.trim();
     STATE.meta.contactInfo = document.getElementById('settings-contact-info').value.trim();
