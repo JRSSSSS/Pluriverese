@@ -543,7 +543,7 @@ const FIRESTORE_COLLECTION = 'pluriverse_data';
 // It's meant to keep casual visitors / search engines out, not to protect against
 // a determined person. For real per-person security, Firebase Authentication with
 // individual accounts would be needed instead. ----
-const SITE_PASSWORD = 'Pluriverse2026';
+const SITE_PASSWORD = 'CHANGE_ME';
 
 let usingClaudeStorage = false;
 let firebaseReady = false;
@@ -621,6 +621,85 @@ async function storeDelete(key, shared){
   if (firebaseReady && fsDb) {
     try{ await fsDb.collection(FIRESTORE_COLLECTION).doc(firestoreDocId(key, sc)).delete(); }catch(e){}
   }
+}
+
+/* ---- Per-item collection storage ----
+   Lists that get edited item-by-item (authors, WGs, themes, blog posts, case inputs,
+   feed items, etc.) used to be saved as one big array under a single key. That meant
+   two tabs/people saving around the same time could silently overwrite each other's
+   edits, since each save wrote the *entire* list as it existed in that tab's memory.
+   Below, each item is its own record (own Firestore document, or own Claude-storage
+   key), so editing one item never touches another's data — only two edits to the
+   exact same item at the exact same time can still collide, a much narrower risk. */
+
+async function collectionGetAll(name){
+  if (usingClaudeStorage) {
+    const index = await storeGet(`pluriverse:${name}:index`, [], true);
+    const items = [];
+    for (const id of index) {
+      const item = await storeGet(`pluriverse:${name}:item:${id}`, null, true);
+      if (item) items.push(item);
+    }
+    return items;
+  }
+  if (firebaseReady && fsDb) {
+    try {
+      const snap = await fsDb.collection('pv_' + name).get();
+      return snap.docs.map(d => { try { return JSON.parse(d.data().json); } catch(e){ return null; } }).filter(Boolean);
+    } catch (e) { console.error('Firestore collection fetch failed', name, e); return []; }
+  }
+  return [];
+}
+
+async function collectionSetItem(name, item){
+  if (!item || !item.id) { console.error('collectionSetItem requires item.id', name, item); return; }
+  if (usingClaudeStorage) {
+    await storeSet(`pluriverse:${name}:item:${item.id}`, item, true);
+    const index = await storeGet(`pluriverse:${name}:index`, [], true);
+    if (!index.includes(item.id)) {
+      index.push(item.id);
+      await storeSet(`pluriverse:${name}:index`, index, true);
+    }
+    return;
+  }
+  if (firebaseReady && fsDb) {
+    try {
+      await fsDb.collection('pv_' + name).doc(String(item.id)).set({
+        json: JSON.stringify(item),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (e) { console.error('Firestore collection set failed', name, e); }
+  }
+}
+
+async function collectionDeleteItem(name, id){
+  if (usingClaudeStorage) {
+    await storeDelete(`pluriverse:${name}:item:${id}`, true);
+    const index = await storeGet(`pluriverse:${name}:index`, [], true);
+    await storeSet(`pluriverse:${name}:index`, index.filter(x => x !== id), true);
+    return;
+  }
+  if (firebaseReady && fsDb) {
+    try { await fsDb.collection('pv_' + name).doc(String(id)).delete(); } catch (e) {}
+  }
+}
+
+// Loads a collection, migrating one-time from the old single-blob key if the new
+// per-item storage is empty but the old key has real data — so nobody's existing
+// edits get lost by this change. Falls back to code defaults only if both are empty.
+async function loadCollectionSafely(name, oldKey, defaults){
+  let items = await collectionGetAll(name);
+  if (items.length > 0) return items;
+  const oldBlob = await storeGet(oldKey, null);
+  if (Array.isArray(oldBlob) && oldBlob.length > 0) {
+    for (const item of oldBlob) { if (item && item.id) await collectionSetItem(name, item); }
+    return oldBlob;
+  }
+  if (Array.isArray(defaults) && defaults.length > 0) {
+    for (const item of defaults) { await collectionSetItem(name, item); }
+    return defaults;
+  }
+  return [];
 }
 
 const COLORS = {
@@ -781,16 +860,22 @@ function mergeWithDefaults(stored, defaults){
 async function loadAll(){
   STATE.lang = await storeGet('pluriverse:lang', 'en', false); // personal preference, not shared
   STATE.meta = await storeGet('pluriverse:meta', DEFAULT_META);
-  const storedWgs = await storeGet('pluriverse:wgs', DEFAULT_WGS);
+  const storedWgs = await loadCollectionSafely('wgs', 'pluriverse:wgs', DEFAULT_WGS);
   STATE.wgs = mergeWithDefaults(storedWgs, DEFAULT_WGS);
-  STATE.themes = await storeGet('pluriverse:themes', DEFAULT_THEMES);
-  STATE.authors = await storeGet('pluriverse:authors', DEFAULT_AUTHORS);
-  STATE.manualPubs = await storeGet('pluriverse:manualPubs', []);
+  STATE.themes = await loadCollectionSafely('themes', 'pluriverse:themes', DEFAULT_THEMES);
+  STATE.authors = await loadCollectionSafely('authors', 'pluriverse:authors', DEFAULT_AUTHORS);
+  // Ensure every author has a stable sort order (drag-order needs a real field, not array position,
+  // so reordering can save just the 1-2 items that moved instead of the whole list).
+  let needsOrderFix = false;
+  STATE.authors.forEach((a, i) => { if (typeof a.order !== 'number') { a.order = i; needsOrderFix = true; } });
+  if (needsOrderFix) { for (const a of STATE.authors) { await collectionSetItem('authors', a); } }
+  STATE.authors.sort((a,b) => (a.order||0) - (b.order||0));
+  STATE.manualPubs = await storeGet('pluriverse:manualPubs', []); // never edited via the UI; not at risk
   STATE.settings = await storeGet('pluriverse:settings', {ciniiAppId:''});
-  STATE.manualSources = await storeGet('pluriverse:manualSourcesByWg', []);
-  STATE.feedItems = await storeGet('pluriverse:feed', []);
-  STATE.caseInputs = await storeGet('pluriverse:cases', []);
-  STATE.blogPosts = await storeGet('pluriverse:blog', []);
+  STATE.manualSources = await loadCollectionSafely('manualSources', 'pluriverse:manualSourcesByWg', []);
+  STATE.feedItems = await loadCollectionSafely('feedItems', 'pluriverse:feed', []);
+  STATE.caseInputs = await loadCollectionSafely('caseInputs', 'pluriverse:cases', []);
+  STATE.blogPosts = await loadCollectionSafely('blogPosts', 'pluriverse:blog', []);
 }
 
 /* ============================= PUBLICATION FETCH ============================= */
@@ -1516,7 +1601,7 @@ function renderWgDetail(wgId){
   if(saveBtn) saveBtn.addEventListener('click', async ()=>{
     const field = STATE.lang==='ja' ? 'descriptionJa' : 'description';
     wg[field] = document.getElementById('wg-desc-input').value;
-    await storeSet('pluriverse:wgs', STATE.wgs);
+    await collectionSetItem('wgs', wg);
     STATE.editingWg=null; render(); showToast(t('saved'));
   });
   const cancelBtn = document.getElementById('cancel-wg');
@@ -1676,7 +1761,7 @@ function renderKeyIdeas(){
       const title = titleInput.value.trim();
       if(!title){ showToast(t('add_title_first')); return; }
       STATE.manualSources.push({ id:'s-'+Math.random().toString(36).slice(2,8), wgId, title, link:linkInput.value.trim(), source:'manual' });
-      await storeSet('pluriverse:manualSourcesByWg', STATE.manualSources);
+      await collectionSetItem('manualSources', STATE.manualSources[STATE.manualSources.length-1]);
       render(); showToast(t('source_added'));
     });
   });
@@ -1692,7 +1777,7 @@ function renderKeyIdeas(){
       const field = lang === 'ja' ? 'extraKeywordsJa' : 'extraKeywords';
       if(!wg[field]) wg[field] = [];
       if(!wg[field].includes(val)) wg[field].push(val);
-      await storeSet('pluriverse:wgs', STATE.wgs);
+      await collectionSetItem('wgs', wg);
       await invalidateLitCache(wgId);
       render(); showToast(t('ideas_kw_added'));
     });
@@ -1706,7 +1791,7 @@ function renderKeyIdeas(){
       const wg = byId(STATE.wgs, wgId);
       const field = lang === 'ja' ? 'extraKeywordsJa' : 'extraKeywords';
       wg[field] = (wg[field]||[]).filter(x=>x!==val);
-      await storeSet('pluriverse:wgs', STATE.wgs);
+      await collectionSetItem('wgs', wg);
       await invalidateLitCache(wgId);
       render(); showToast(t('ideas_kw_removed'));
     });
@@ -1768,14 +1853,14 @@ function renderCases(){
       createdAt: Date.now(),
     };
     STATE.caseInputs.push(entry);
-    await storeSet('pluriverse:cases', STATE.caseInputs);
+    await collectionSetItem('caseInputs', entry);
     render(); showToast(t('case_added'));
   });
 
   document.querySelectorAll('[data-remove-case]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       STATE.caseInputs = STATE.caseInputs.filter(c=>c.id!==b.dataset.removeCase);
-      await storeSet('pluriverse:cases', STATE.caseInputs);
+      await collectionDeleteItem('caseInputs', b.dataset.removeCase);
       render(); showToast(t('case_removed'));
     });
   });
@@ -1840,14 +1925,14 @@ function renderFeed(){
       createdAt: Date.now(),
     };
     STATE.feedItems.push(entry);
-    await storeSet('pluriverse:feed', STATE.feedItems);
+    await collectionSetItem('feedItems', entry);
     render(); showToast(t('feed_posted'));
   });
 
   document.querySelectorAll('[data-remove-feed]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       STATE.feedItems = STATE.feedItems.filter(f=>f.id!==b.dataset.removeFeed);
-      await storeSet('pluriverse:feed', STATE.feedItems);
+      await collectionDeleteItem('feedItems', b.dataset.removeFeed);
       render(); showToast(t('feed_removed'));
     });
   });
@@ -1951,8 +2036,11 @@ function renderTeam(){
     b.addEventListener('click', async ()=>{
       const idx = STATE.authors.findIndex(a=>a.id===b.dataset.moveUp);
       if(idx <= 0) return;
-      [STATE.authors[idx-1], STATE.authors[idx]] = [STATE.authors[idx], STATE.authors[idx-1]];
-      await storeSet('pluriverse:authors', STATE.authors);
+      const cur = STATE.authors[idx], prev = STATE.authors[idx-1];
+      const tmp = cur.order; cur.order = prev.order; prev.order = tmp;
+      STATE.authors.sort((x,y)=>(x.order||0)-(y.order||0));
+      await collectionSetItem('authors', cur);
+      await collectionSetItem('authors', prev);
       render();
     });
   });
@@ -1960,8 +2048,11 @@ function renderTeam(){
     b.addEventListener('click', async ()=>{
       const idx = STATE.authors.findIndex(a=>a.id===b.dataset.moveDown);
       if(idx === -1 || idx >= STATE.authors.length-1) return;
-      [STATE.authors[idx+1], STATE.authors[idx]] = [STATE.authors[idx], STATE.authors[idx+1]];
-      await storeSet('pluriverse:authors', STATE.authors);
+      const cur = STATE.authors[idx], next = STATE.authors[idx+1];
+      const tmp = cur.order; cur.order = next.order; next.order = tmp;
+      STATE.authors.sort((x,y)=>(x.order||0)-(y.order||0));
+      await collectionSetItem('authors', cur);
+      await collectionSetItem('authors', next);
       render();
     });
   });
@@ -1975,7 +2066,7 @@ function renderTeam(){
       const author = byId(STATE.authors, ta.dataset.status);
       if(author.status !== ta.value){
         author.status = ta.value;
-        await storeSet('pluriverse:authors', STATE.authors);
+        await collectionSetItem('authors', author);
         showToast(t('status_updated'));
       }
     });
@@ -2024,24 +2115,29 @@ function renderTeam(){
       wgIds, themeIds,
     };
     if(!payload.name){ showToast(t('name_required')); return; }
+    let savedItem;
     if(STATE.editingAuthorId){
       const existing = byId(STATE.authors, STATE.editingAuthorId);
       Object.assign(existing, payload);
       delete STATE.pubCache[existing.id];
+      savedItem = existing;
     } else {
       payload.id = 'a-' + payload.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.random().toString(36).slice(2,6);
       payload.status = '';
+      payload.order = Math.max(-1, ...STATE.authors.map(a=>a.order||0)) + 1;
       STATE.authors.push(payload);
+      savedItem = payload;
     }
-    await storeSet('pluriverse:authors', STATE.authors);
+    await collectionSetItem('authors', savedItem);
     STATE.showAuthorForm=false; STATE.editingAuthorId=null;
     render(); showToast(t('saved'));
   });
 
   const deleteBtn = document.getElementById('f-delete');
   if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
-    STATE.authors = STATE.authors.filter(a=>a.id!==STATE.editingAuthorId);
-    await storeSet('pluriverse:authors', STATE.authors);
+    const removedId = STATE.editingAuthorId;
+    STATE.authors = STATE.authors.filter(a=>a.id!==removedId);
+    await collectionDeleteItem('authors', removedId);
     STATE.showAuthorForm=false; STATE.editingAuthorId=null;
     render(); showToast(t('removed'));
   });
@@ -2131,14 +2227,17 @@ function renderThemes(){
       descriptionJa: document.getElementById('th-desc-ja').value.trim(),
       color: colorInput ? colorInput.value : COLORS.moss,
     };
+    let savedTheme;
     if(STATE.editingThemeId){
       const existing = byId(STATE.themes, STATE.editingThemeId);
       Object.assign(existing, payload);
+      savedTheme = existing;
     } else {
       payload.id = 't-' + name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.random().toString(36).slice(2,6);
       STATE.themes.push(payload);
+      savedTheme = payload;
     }
-    await storeSet('pluriverse:themes', STATE.themes);
+    await collectionSetItem('themes', savedTheme);
     STATE.showThemeForm=false; STATE.editingThemeId=null;
     render(); showToast(t('saved'));
   });
@@ -2147,9 +2246,10 @@ function renderThemes(){
   if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
     const themeId = STATE.editingThemeId;
     STATE.themes = STATE.themes.filter(th=>th.id!==themeId);
-    STATE.authors.forEach(a=>{ if(a.themeIds) a.themeIds = a.themeIds.filter(id=>id!==themeId); });
-    await storeSet('pluriverse:themes', STATE.themes);
-    await storeSet('pluriverse:authors', STATE.authors);
+    const affectedAuthors = STATE.authors.filter(a=>a.themeIds && a.themeIds.includes(themeId));
+    affectedAuthors.forEach(a=>{ a.themeIds = a.themeIds.filter(id=>id!==themeId); });
+    await collectionDeleteItem('themes', themeId);
+    for(const a of affectedAuthors){ await collectionSetItem('authors', a); }
     STATE.showThemeForm=false; STATE.editingThemeId=null;
     render(); showToast(t('theme_removed'));
   });
@@ -2547,13 +2647,16 @@ function renderBlogAdmin(){
       }
     }
 
+    let savedPost;
     if(STATE.editingBlogId){
       const post = STATE.blogPosts.find(p=>p.id===STATE.editingBlogId);
       Object.assign(post, {title, body, author, updatedAt:Date.now(), ...pdfFields});
+      savedPost = post;
     } else {
-      STATE.blogPosts.push({ id:postId, title, body, author, published:false, createdAt:Date.now(), updatedAt:Date.now(), publishedAt:null, pdfUrl:'', pdfName:'', ...pdfFields });
+      savedPost = { id:postId, title, body, author, published:false, createdAt:Date.now(), updatedAt:Date.now(), publishedAt:null, pdfUrl:'', pdfName:'', ...pdfFields };
+      STATE.blogPosts.push(savedPost);
     }
-    await storeSet('pluriverse:blog', STATE.blogPosts);
+    await collectionSetItem('blogPosts', savedPost);
     STATE.showBlogForm=false; STATE.editingBlogId=null;
     render(); showToast(t('saved'));
   });
@@ -2567,7 +2670,7 @@ function renderBlogAdmin(){
       const post = STATE.blogPosts.find(p=>p.id===b.dataset.togglePublish);
       post.published = !post.published;
       post.publishedAt = post.published ? Date.now() : post.publishedAt;
-      await storeSet('pluriverse:blog', STATE.blogPosts);
+      await collectionSetItem('blogPosts', post);
       render(); showToast(post.published ? t('blog_now_published') : t('blog_now_unpublished'));
     });
   });
@@ -2578,8 +2681,9 @@ function renderBlogAdmin(){
     if(post && post.pdfUrl && fsStorage){
       try{ await fsStorage.refFromURL(post.pdfUrl).delete(); }catch(e){ /* best-effort cleanup */ }
     }
-    STATE.blogPosts = STATE.blogPosts.filter(p=>p.id!==STATE.editingBlogId);
-    await storeSet('pluriverse:blog', STATE.blogPosts);
+    const removedId = STATE.editingBlogId;
+    STATE.blogPosts = STATE.blogPosts.filter(p=>p.id!==removedId);
+    await collectionDeleteItem('blogPosts', removedId);
     STATE.showBlogForm=false; STATE.editingBlogId=null;
     render(); showToast(t('removed'));
   });
