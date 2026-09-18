@@ -547,7 +547,7 @@ const FIRESTORE_COLLECTION = 'pluriverse_data';
 // It's meant to keep casual visitors / search engines out, not to protect against
 // a determined person. For real per-person security, Firebase Authentication with
 // individual accounts would be needed instead. ----
-const SITE_PASSWORD = 'Pluriverse2026';
+const SITE_PASSWORD = 'CHANGE_ME';
 
 let usingClaudeStorage = false;
 let firebaseReady = false;
@@ -862,24 +862,43 @@ function mergeWithDefaults(stored, defaults){
 }
 
 async function loadAll(){
-  STATE.lang = await storeGet('pluriverse:lang', 'en', false); // personal preference, not shared
-  STATE.meta = await storeGet('pluriverse:meta', DEFAULT_META);
-  const storedWgs = await loadCollectionSafely('wgs', 'pluriverse:wgs', DEFAULT_WGS);
+  // All of these are independent reads — fire them together instead of waiting
+  // for each one before starting the next, which was needlessly slowing down
+  // every page load.
+  const [
+    lang, meta, storedWgs, themes, authors, manualPubs, settings, manualSources, feedItems, caseInputs, blogPosts
+  ] = await Promise.all([
+    storeGet('pluriverse:lang', 'en', false), // personal preference, not shared
+    storeGet('pluriverse:meta', DEFAULT_META),
+    loadCollectionSafely('wgs', 'pluriverse:wgs', DEFAULT_WGS),
+    loadCollectionSafely('themes', 'pluriverse:themes', DEFAULT_THEMES),
+    loadCollectionSafely('authors', 'pluriverse:authors', DEFAULT_AUTHORS),
+    storeGet('pluriverse:manualPubs', []), // never edited via the UI; not at risk
+    storeGet('pluriverse:settings', {ciniiAppId:''}),
+    loadCollectionSafely('manualSources', 'pluriverse:manualSourcesByWg', []),
+    loadCollectionSafely('feedItems', 'pluriverse:feed', []),
+    loadCollectionSafely('caseInputs', 'pluriverse:cases', []),
+    loadCollectionSafely('blogPosts', 'pluriverse:blog', []),
+  ]);
+
+  STATE.lang = lang;
+  STATE.meta = meta;
   STATE.wgs = mergeWithDefaults(storedWgs, DEFAULT_WGS);
-  STATE.themes = await loadCollectionSafely('themes', 'pluriverse:themes', DEFAULT_THEMES);
-  STATE.authors = await loadCollectionSafely('authors', 'pluriverse:authors', DEFAULT_AUTHORS);
+  STATE.themes = themes;
+  STATE.authors = authors;
+  STATE.manualPubs = manualPubs;
+  STATE.settings = settings;
+  STATE.manualSources = manualSources;
+  STATE.feedItems = feedItems;
+  STATE.caseInputs = caseInputs;
+  STATE.blogPosts = blogPosts;
+
   // Ensure every author has a stable sort order (drag-order needs a real field, not array position,
   // so reordering can save just the 1-2 items that moved instead of the whole list).
   let needsOrderFix = false;
   STATE.authors.forEach((a, i) => { if (typeof a.order !== 'number') { a.order = i; needsOrderFix = true; } });
   if (needsOrderFix) { for (const a of STATE.authors) { await collectionSetItem('authors', a); } }
   STATE.authors.sort((a,b) => (a.order||0) - (b.order||0));
-  STATE.manualPubs = await storeGet('pluriverse:manualPubs', []); // never edited via the UI; not at risk
-  STATE.settings = await storeGet('pluriverse:settings', {ciniiAppId:''});
-  STATE.manualSources = await loadCollectionSafely('manualSources', 'pluriverse:manualSourcesByWg', []);
-  STATE.feedItems = await loadCollectionSafely('feedItems', 'pluriverse:feed', []);
-  STATE.caseInputs = await loadCollectionSafely('caseInputs', 'pluriverse:cases', []);
-  STATE.blogPosts = await loadCollectionSafely('blogPosts', 'pluriverse:blog', []);
 }
 
 /* ============================= PUBLICATION FETCH ============================= */
