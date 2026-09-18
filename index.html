@@ -305,6 +305,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 
 <script>
 /* ============================= i18n ============================= */
@@ -327,6 +328,9 @@ const STRINGS = {
     blog_title_ph:'Post title', blog_body_ph:'Write the post…', blog_save_draft:'Save draft', blog_delete:'Delete post',
     blog_title_required:'Add a title first', blog_published:'Published', blog_draft:'Draft',
     blog_publish:'Publish', blog_unpublish:'Unpublish', blog_now_published:'Post is now public', blog_now_unpublished:'Post is now a draft again',
+    blog_pdf_label:'Attach a PDF (optional)', blog_pdf_attached:'Attached', blog_pdf_none:'No PDF attached yet',
+    blog_pdf_unavailable:'PDF upload needs Firebase Storage enabled \u2014 see Settings/README for setup.',
+    blog_pdf_uploading:'Uploading…', blog_pdf_upload_failed:'PDF upload failed \u2014 try again.', blog_pdf_download:'Download PDF',
     ov_eyebrow:'Theory of change', ov_wg_heading:'Working groups — click to open',
     ov_no_lead:'no lead assigned', edit:'edit', save:'Save', cancel:'Cancel',
     diagram_team_in_dev:'team in development',
@@ -421,6 +425,9 @@ const STRINGS = {
     blog_title_ph:'投稿タイトル', blog_body_ph:'本文を入力…', blog_save_draft:'下書きを保存', blog_delete:'投稿を削除',
     blog_title_required:'先にタイトルを入力してください', blog_published:'公開済み', blog_draft:'下書き',
     blog_publish:'公開する', blog_unpublish:'非公開にする', blog_now_published:'投稿を公開しました', blog_now_unpublished:'投稿を下書きに戻しました',
+    blog_pdf_label:'PDFを添付（任意）', blog_pdf_attached:'添付済み', blog_pdf_none:'PDFはまだ添付されていません',
+    blog_pdf_unavailable:'PDFのアップロードにはFirebase Storageの有効化が必要です。設定/READMEをご確認ください。',
+    blog_pdf_uploading:'アップロード中…', blog_pdf_upload_failed:'PDFのアップロードに失敗しました。もう一度お試しください。', blog_pdf_download:'PDFをダウンロード',
     ov_eyebrow:'セオリー・オブ・チェンジ', ov_wg_heading:'ワーキンググループ（クリックで詳細）',
     ov_no_lead:'リーダー未設定', edit:'編集', save:'保存', cancel:'キャンセル',
     diagram_team_in_dev:'team in development（編成中）',
@@ -536,12 +543,13 @@ const FIRESTORE_COLLECTION = 'pluriverse_data';
 // It's meant to keep casual visitors / search engines out, not to protect against
 // a determined person. For real per-person security, Firebase Authentication with
 // individual accounts would be needed instead. ----
-const SITE_PASSWORD = 'Pluriverse2026';
+const SITE_PASSWORD = 'CHANGE_ME';
 
 let usingClaudeStorage = false;
 let firebaseReady = false;
 let fsDb = null;
 let fsUid = null;
+let fsStorage = null; // Firebase Storage, for actual file uploads (e.g. blog PDFs) — separate from Firestore
 
 function firebaseConfigured(){
   return FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('PASTE_');
@@ -561,6 +569,7 @@ async function initStorageBackend(){
     const cred = await firebase.auth().signInAnonymously();
     fsUid = cred.user.uid;
     fsDb = firebase.firestore();
+    try{ fsStorage = firebase.storage(); }catch(e){ console.warn('Firebase Storage unavailable (PDF uploads won\u2019t work until it\u2019s enabled in the Firebase console):', e); }
     firebaseReady = true;
   } catch (e) {
     console.error('Firebase init failed — running with in-memory defaults only.', e);
@@ -2406,7 +2415,7 @@ function renderPublicBlog(){
     <p class="lede">${t('pub_blog_lede')}</p>
     ${posts.length===0 ? `<div class="empty-state">${t('pub_blog_empty')}</div>` : posts.map(p=>`
       <div class="feed-item" data-post="${p.id}" style="cursor:pointer;">
-        <div class="ftitle">${escapeHtml(p.title)}</div>
+        <div class="ftitle">${escapeHtml(p.title)} ${p.pdfUrl ? `<span class="tag-mini">📄 PDF</span>` : ''}</div>
         <div class="fnote">${escapeHtml((p.body||'').slice(0,220))}${(p.body||'').length>220?'…':''}</div>
         <div class="fmeta"><span class="fby">${escapeHtml(p.author||'')} · ${fmtDate(p.publishedAt||p.createdAt)}</span></div>
       </div>`).join('')}
@@ -2424,6 +2433,7 @@ function renderPublicPost(postId){
     <p class="eyebrow">${escapeHtml(post.author||'')} · ${fmtDate(post.publishedAt||post.createdAt)}</p>
     <h2 class="section-title">${escapeHtml(post.title)}</h2>
     <div class="lede" style="max-width:700px; white-space:pre-wrap;">${escapeHtml(post.body||'')}</div>
+    ${post.pdfUrl ? `<p class="lede"><a href="${post.pdfUrl}" target="_blank" rel="noopener">📄 ${t('blog_pdf_download')}${post.pdfName ? ' — '+escapeHtml(post.pdfName) : ''}</a></p>` : ''}
   `;
   document.getElementById('back-blog').addEventListener('click', ()=>goto('pub-blog'));
 }
@@ -2448,7 +2458,10 @@ function renderLoginView(){
 /* ============================= INTERNAL: BLOG ADMIN ============================= */
 
 function blogFormHtml(existing){
-  const p = existing || {title:'', body:'', author:''};
+  const p = existing || {title:'', body:'', author:'', pdfUrl:'', pdfName:''};
+  const pdfStatus = p.pdfUrl
+    ? `<span class="fetch-note">${t('blog_pdf_attached')}: <a href="${p.pdfUrl}" target="_blank" rel="noopener">${escapeHtml(p.pdfName||'PDF')}</a></span>`
+    : `<span class="fetch-note">${t('blog_pdf_none')}</span>`;
   return `
     <div class="form-panel">
       <p class="eyebrow">${existing ? t('blog_edit_title') : t('blog_new_title')}</p>
@@ -2456,6 +2469,12 @@ function blogFormHtml(existing){
         <div class="field full"><label>${t('blog_title_ph')}</label><input id="blog-title" value="${escapeHtml(p.title)}" placeholder="${t('blog_title_ph')}" /></div>
         <div class="field"><label>${t('feed_name_ph')}</label><input id="blog-author" value="${escapeHtml(p.author)}" placeholder="${t('feed_name_ph')}" /></div>
         <div class="field full"><label>${t('blog_body_ph')}</label><textarea id="blog-body" rows="8" placeholder="${t('blog_body_ph')}">${escapeHtml(p.body)}</textarea></div>
+        <div class="field full">
+          <label>${t('blog_pdf_label')}</label>
+          <input type="file" id="blog-pdf-input" accept="application/pdf" ${!fsStorage ? 'disabled' : ''} />
+          <div style="margin-top:6px;">${pdfStatus}</div>
+          ${!fsStorage ? `<p class="fetch-note" style="color:var(--clay);">${t('blog_pdf_unavailable')}</p>` : ''}
+        </div>
       </div>
       <div class="form-actions">
         <button class="btn" id="blog-save">${existing ? t('save_changes') : t('blog_save_draft')}</button>
@@ -2463,6 +2482,14 @@ function blogFormHtml(existing){
         ${existing ? `<button class="btn ghost" id="blog-delete" style="color:var(--clay); margin-left:auto;">${t('blog_delete')}</button>` : ''}
       </div>
     </div>`;
+}
+
+async function uploadBlogPdf(postId, file){
+  if(!fsStorage) throw new Error('Firebase Storage not available');
+  const ref = fsStorage.ref().child(`blog-pdfs/${postId}/${Date.now()}-${file.name}`);
+  const snapshot = await ref.put(file);
+  const url = await snapshot.ref.getDownloadURL();
+  return { url, name: file.name };
 }
 
 function renderBlogAdmin(){
@@ -2475,7 +2502,7 @@ function renderBlogAdmin(){
     ${STATE.showBlogForm ? blogFormHtml(STATE.editingBlogId ? STATE.blogPosts.find(p=>p.id===STATE.editingBlogId) : null) : ''}
     ${posts.length===0 ? `<div class="empty-state">${t('blog_admin_empty')}</div>` : posts.map(p=>`
       <div class="feed-item">
-        <div class="ftitle">${escapeHtml(p.title)} ${p.published ? `<span class="tag-mini" style="border-color:var(--moss); color:var(--moss-deep);">${t('blog_published')}</span>` : `<span class="tag-mini">${t('blog_draft')}</span>`}</div>
+        <div class="ftitle">${escapeHtml(p.title)} ${p.published ? `<span class="tag-mini" style="border-color:var(--moss); color:var(--moss-deep);">${t('blog_published')}</span>` : `<span class="tag-mini">${t('blog_draft')}</span>`} ${p.pdfUrl ? `<span class="tag-mini">📄 PDF</span>` : ''}</div>
         <div class="fnote">${escapeHtml((p.body||'').slice(0,160))}${(p.body||'').length>160?'…':''}</div>
         <div class="fmeta">
           <span class="fby">${escapeHtml(p.author||'')} · ${fmtDate(p.updatedAt||p.createdAt)}</span>
@@ -2497,11 +2524,34 @@ function renderBlogAdmin(){
     if(!title){ showToast(t('blog_title_required')); return; }
     const body = document.getElementById('blog-body').value.trim();
     const author = document.getElementById('blog-author').value.trim();
+
+    let postId = STATE.editingBlogId || ('b-'+Math.random().toString(36).slice(2,9));
+    let pdfFields = {};
+    const fileInput = document.getElementById('blog-pdf-input');
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    if(file){
+      if(!fsStorage){
+        showToast(t('blog_pdf_unavailable'));
+        return;
+      }
+      saveBtn.disabled = true;
+      saveBtn.textContent = t('blog_pdf_uploading');
+      try{
+        const { url, name } = await uploadBlogPdf(postId, file);
+        pdfFields = { pdfUrl: url, pdfName: name };
+      }catch(e){
+        console.error('PDF upload failed', e);
+        showToast(t('blog_pdf_upload_failed'));
+        saveBtn.disabled = false;
+        return;
+      }
+    }
+
     if(STATE.editingBlogId){
       const post = STATE.blogPosts.find(p=>p.id===STATE.editingBlogId);
-      Object.assign(post, {title, body, author, updatedAt:Date.now()});
+      Object.assign(post, {title, body, author, updatedAt:Date.now(), ...pdfFields});
     } else {
-      STATE.blogPosts.push({ id:'b-'+Math.random().toString(36).slice(2,9), title, body, author, published:false, createdAt:Date.now(), updatedAt:Date.now(), publishedAt:null });
+      STATE.blogPosts.push({ id:postId, title, body, author, published:false, createdAt:Date.now(), updatedAt:Date.now(), publishedAt:null, pdfUrl:'', pdfName:'', ...pdfFields });
     }
     await storeSet('pluriverse:blog', STATE.blogPosts);
     STATE.showBlogForm=false; STATE.editingBlogId=null;
@@ -2524,6 +2574,10 @@ function renderBlogAdmin(){
 
   const deleteBtn = document.getElementById('blog-delete');
   if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+    const post = STATE.blogPosts.find(p=>p.id===STATE.editingBlogId);
+    if(post && post.pdfUrl && fsStorage){
+      try{ await fsStorage.refFromURL(post.pdfUrl).delete(); }catch(e){ /* best-effort cleanup */ }
+    }
     STATE.blogPosts = STATE.blogPosts.filter(p=>p.id!==STATE.editingBlogId);
     await storeSet('pluriverse:blog', STATE.blogPosts);
     STATE.showBlogForm=false; STATE.editingBlogId=null;
